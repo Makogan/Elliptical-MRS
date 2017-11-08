@@ -120,7 +120,7 @@ mat4 Camera::getPerspectiveMatrix()
 void Camera::setLookDirection(vec3 v)
 {
 	forward = normalize(v);
-	side = cross(forward, up);
+	side = cross(up, forward);
 }
 
 /*

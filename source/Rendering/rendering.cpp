@@ -34,7 +34,7 @@ vector<GLuint> programs;//Global shading programs list
 vector<Shader> shaders;//Global Shaders list 
 //TODO: Maybe delete Geometry list and change it for a different data structure or 
 //		Avoid it alltogether
-vector<Geometry> shapes(2);//Global Shapes list Temporary!
+vector<Geometry> shapes(10);//Global Shapes list Temporary!
 vector<Texture> textures(2); //Temporary
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -549,29 +549,108 @@ void DestroyTexture(Texture &texture)
 * The following functions are not final at all, if modifications can be done, do them
 */
 
+void ellipse(vector<vec3> &vertices, vector<uint> &indices, vector<vec3> &normals, float a, float b, float c)
+{
+	for(uint i=0; i<100; i++)
+	{
+		float v=(i/99.f)*M_PI;
+		for(uint j=0; j<100; j++)
+		{
+			float u=(j/99.f)*2*M_PI;
+			vec3 normal = vec3(a*cos(u)*sin(v), b*sin(u)*sin(v), c*cos(v));
+			vertices.push_back(normal);
+			indices.push_back(i*100+j);
+			indices.push_back((i+1)*100+j);
+			indices.push_back((i)*100+j+1);
+			indices.push_back((i+1)*100+j+1);
+			normals.push_back(normalize(normal));
+		}
+	}
+}
+
+vec3 slerp(vec3 p1, vec3 p2, double t)
+{
+	vec3 u1 = normalize(p1);
+	vec3 u2 = normalize(p2);
+
+	double omega = acos(dot(p1,p2));
+
+	double c1=sin((1-t)*omega)/(sin(omega));
+	double c2=sin(t*omega)/sin(omega);
+
+	return (float)c1*p1+(float)c2*p2;
+}
+
+vec3 rectangle_to_sphere(vec2 p, float r)
+{
+	float u=p[0], v=p[1]; 
+	return vec3(r*cos(u)*sin(v), r*sin(u)*sin(v), r*cos(v));
+}
+
+vector<vec3> subdivision(vector<vec3> points, vec3(*interp)(vec3,vec3,double))
+{
+	vector<vec3> new_shape;
+
+	//point duplication
+	for(vec3 point : points)
+	{
+		new_shape.push_back(point);
+		new_shape.push_back(point);
+	}
+
+	for(uint i=0; i<new_shape.size()/2; i++)
+	{
+		new_shape[2*i+1]=interp(new_shape[2*i], new_shape[(2*i+2)%new_shape.size()], 0.5);
+	}
+
+	//smoothing
+	for(uint i=0; i<new_shape.size(); i++)
+	{
+		new_shape[i] = interp(new_shape[i], new_shape[(i+1)%new_shape.size()], 0.5);
+	}
+
+	return new_shape;
+}
+bool temp=false;
 //main render loop
 void render_loop(GLFWwindow* window)
 {
-	shapes[0].vertices.clear();
-	load_obj("Assets/Objs/cube.obj", (vector<float>*) &shapes[0].vertices, 
-		(vector<float>*) &shapes[0].normals, (vector<float>*) &shapes[0].uvs);
+	ellipse(shapes[0].vertices, shapes[0].indices, shapes[0].normals, 1.f,1.f,1.f);
+
+	shapes[1].vertices.push_back(rectangle_to_sphere(vec2(0.5, 1), 1));
+	shapes[1].vertices.push_back(rectangle_to_sphere(vec2(0.1, 1), 1));
+	shapes[1].vertices.push_back(rectangle_to_sphere(vec2(0.1, 1.5), 1));
+	shapes[1].vertices.push_back(rectangle_to_sphere(vec2(0.5, 1.5), 1));
+
+	loadGeometryArrays(programs[0], shapes[0]);
+	loadGeometryArrays(programs[0], shapes[1]);
 
     while (!glfwWindowShouldClose(window))
 	{
+		if(temp)
+		{
+			temp=false;
+			shapes[1].vertices = subdivision(shapes[1].vertices, slerp);
+			loadGeometryArrays(programs[0], shapes[1]);
+		}
+
 		if(!loadViewProjMatrix(cam, programs[0]))
 		{
 			cerr << "Error when loading projection matrix!" << endl;
 			return;
 		}
-		glClearColor(0, 0.f, 0.f, 1.0f);
+		glClearColor(0.7f, 0.7f, 0.7f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		loadColor(vec4(1,1,1,1), programs[0]);
-		loadGeometryArrays(programs[0], shapes[0]);
-		loadTexture(programs[0], textures[0]);
+		loadColor(vec4(0,0.5,0.9,1), programs[0]);
+		//loadTexture(programs[0], textures[0]);
+		render(programs[0], shapes[0], GL_TRIANGLE_STRIP);
 
-		render(programs[0], shapes[0], GL_TRIANGLES);
-
+		glDisable(GL_DEPTH_TEST);
+		loadColor(vec4(1.f,0,0,1), programs[0]);
+		render(programs[0], shapes[1], GL_POINTS);
+		glEnable(GL_DEPTH_TEST);
+		
 		glfwPollEvents();
 		glfwSwapBuffers(window);
 	}

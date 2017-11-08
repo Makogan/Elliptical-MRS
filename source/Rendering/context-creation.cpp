@@ -80,17 +80,24 @@ GLFWwindow* create_context()
 	
 	//TODO: this should not be here, delete once it's not needed
 	createGeometry(shapes[0]);//Create a geometry object 
+	createGeometry(shapes[1]);//Create a geometry object 
+	createGeometry(shapes[2]);//Create a geometry object 
+	createGeometry(shapes[3]);//Create a geometry object 
 	createTexture(textures[0], "Assets/Textures/Cube-map.png", GL_TEXTURE_2D);
 	
 	//Create a new camera object with defined orientation, position, and dimensions
     int width, height;
     glfwGetWindowSize(window, &width, &height);
-    cam = *(new Camera(mat3(-1), vec3(0,20,0), width, height));
+	cam = *(new Camera(mat3(-1), vec3(10,0,0), width, height));
+	cam.setLookDirection(vec3(-1,0,0));
 
 	//Set default OpenGL values for rendering
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LEQUAL);
-    glPointSize(10.f);
+	glPointSize(10.f);
+	glLineWidth(10.f);
+
+	GLfloat LineRange[2];
 
 	return window;
 	return NULL;
@@ -249,8 +256,8 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 {
 
 }
-
-#define CAM_SPEED 0.5f
+extern bool temp;
+#define CAM_SPEED 0.1f
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
@@ -286,22 +293,22 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     	cout << glfwGetVersionString() << endl;
 
     else if(key == GLFW_KEY_W)
-    	cam.move(normalize(cam.getForward()));
+    	cam.move(normalize(cam.getForward())*CAM_SPEED);
 
     else if(key == GLFW_KEY_S)
-    	cam.move(-normalize(cam.getForward()));
+    	cam.move(-normalize(cam.getForward())*CAM_SPEED);
 
     else if(key == GLFW_KEY_A)
-    	cam.move(normalize(cam.getSide()));
+    	cam.move(normalize(cam.getSide())*CAM_SPEED);
 
     else if(key == GLFW_KEY_D)
-		cam.move(-normalize(cam.getSide()));
+		cam.move(-normalize(cam.getSide())*CAM_SPEED);
 
     else if(key == GLFW_KEY_Q)
-		cam.move(normalize(cam.getUp()));
+		cam.move(normalize(cam.getUp())*CAM_SPEED);
 
     else if(key == GLFW_KEY_E)
-		cam.move(-normalize(cam.getUp()));
+		cam.move(-normalize(cam.getUp())*CAM_SPEED);
 
     else if(key == GLFW_KEY_KP_6)
     	cam.turnH(radians(-1.f));
@@ -315,16 +322,26 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     else if(key == GLFW_KEY_KP_2)
     	cam.turnV(radians(1.f));
 
-    else if(key == GLFW_KEY_KP_ADD)
-    	cam.incline(radians(1.f));
+	else if(key == GLFW_KEY_KP_ADD && action == GLFW_PRESS && !temp)
+	{
+		temp=true;
+	}
 
-    else if(key == GLFW_KEY_KP_SUBTRACT)
-    	cam.incline(radians(-1.f));
+	else if(key == GLFW_KEY_KP_SUBTRACT)
+	{
+
+	}
 
     else if(key == GLFW_KEY_KP_MULTIPLY)
     	cam.resetView();
 
     else if(key == GLFW_KEY_KP_DIVIDE)
-    	cam.resetCamera();
+		cam.resetCamera();
+	
+	else if(key == GLFW_KEY_PRINT_SCREEN && action == GLFW_PRESS)
+	{
+		vec3 p = cam.getPosition();
+		cout << "("<< p[0] << ", " << p[1] << ", " << p[2] << ")" << endl;
+	}
 }
 //########################################################################################
