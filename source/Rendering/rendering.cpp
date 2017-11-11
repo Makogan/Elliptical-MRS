@@ -598,20 +598,77 @@ vector<vec3> subdivision(vector<vec3> points, vec3(*interp)(vec3,vec3,double))
 		new_shape.push_back(point);
 	}
 
-	for(uint i=0; i<new_shape.size()/2; i++)
+	int n=new_shape.size();
+
+	//G_0
+	for(uint i=0; i<n/2; i++)
 	{
-		new_shape[2*i+1]=interp(new_shape[2*i], new_shape[(2*i+2)%new_shape.size()], 0.5);
+		new_shape[2*i]=interp(new_shape[2*i], interp(new_shape[((2*i-1)%n+n)%n], new_shape[(2*i+1)%n], 0.5), 0.5);
+	}
+
+	//G_1
+	for(uint i=0; i<n/2; i++)
+	{
+		new_shape[2*i+1]=interp(new_shape[2*i+1], interp(new_shape[2*i], new_shape[(2*i+2)%n], 0.5), 0.5);
 	}
 
 	//smoothing
-	for(uint i=0; i<new_shape.size(); i++)
+	/*for(uint i=0; i<new_shape.size(); i++)
 	{
 		new_shape[i] = interp(new_shape[i], new_shape[(i+1)%new_shape.size()], 0.5);
-	}
+	}*/
 
 	return new_shape;
 }
-bool temp=false;
+
+/*
+	//G_0
+	for(uint i=0; i<n/2; i++)
+	{
+		new_shape[2*i]=interp(new_shape[((2*i-1)%n+n)%n], new_shape[(2*i+1)%n], 0.5);
+	}
+
+	//G_1
+	for(uint i=0; i<n/2; i++)
+	{
+		new_shape[2*i+1]=interp(new_shape[2*i], new_shape[(2*i+2)%n], 0.5);
+	}
+*/
+
+vector<vec3> reverse_subdivision(vector<vec3> points, vec3(*interp)(vec3,vec3,double))
+{
+
+}
+
+void elliptical_P_Decomposition(vector<vec3> fine, vector<double> w, 
+	vector<vec3> *coarse, vector<vec4> *details, 
+	vec3(*interp)(vec3,vec3,double))
+{
+	int n=fine.size();
+	for(int j=w.size()-1; j>=0; j--)
+	{
+		if(j & 1==0)
+			for(int i=0; i<=fine.size()-2; i+=2)
+			{
+				vec3 mid = interp(fine[((i-1)%n+n)%n], fine[i+1], 0.5f);
+				fine[i] = interp(fine[i],mid,w[j]/(w[j]-1));
+			}
+
+		else
+			for(int i=1; i<=fine.size()-2; i+=2)
+			{
+				vec3 mid = interp(fine[((i-1)%n+n)%n], fine[i+1], 0.5f);
+				fine[i] = interp(fine[i],mid,w[j]/(w[j]-1));
+			}
+	}
+	for(int i=0; i<fine.size()-2;i+=2)
+	{
+		vec3 mid = interp(fine[i], fine[i+2], 0.5);
+		(*coarse)[i/2]=fine[i];
+		(*details)[i/2]=vec4(cross(fine[i],mid),acos(dot(normalize(fine[i]), normalize(fine[i+1]))));
+	}
+}
+
 //main render loop
 void render_loop(GLFWwindow* window)
 {
@@ -627,12 +684,11 @@ void render_loop(GLFWwindow* window)
 
     while (!glfwWindowShouldClose(window))
 	{
-		if(temp)
+		/*if(temp)
 		{
-			temp=false;
 			shapes[1].vertices = subdivision(shapes[1].vertices, slerp);
 			loadGeometryArrays(programs[0], shapes[1]);
-		}
+		}*/
 
 		if(!loadViewProjMatrix(cam, programs[0]))
 		{

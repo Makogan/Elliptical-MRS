@@ -88,7 +88,7 @@ GLFWwindow* create_context()
 	//Create a new camera object with defined orientation, position, and dimensions
     int width, height;
     glfwGetWindowSize(window, &width, &height);
-	cam = *(new Camera(mat3(-1), vec3(10,0,0), width, height));
+	cam = *(new Camera(mat3(-1), vec3(3,0,0), width, height));
 	cam.setLookDirection(vec3(-1,0,0));
 
 	//Set default OpenGL values for rendering
@@ -256,7 +256,9 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 {
 
 }
-extern bool temp;
+//extern bool temp;
+extern vector<vec3> subdivision(vector<vec3> verts, vec3(*interp)(vec3,vec3,double));
+extern vec3 slerp(vec3 p1, vec3 p2, double t);
 #define CAM_SPEED 0.1f
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
@@ -322,14 +324,15 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     else if(key == GLFW_KEY_KP_2)
     	cam.turnV(radians(1.f));
 
-	else if(key == GLFW_KEY_KP_ADD && action == GLFW_PRESS && !temp)
+	else if(key == GLFW_KEY_KP_ADD && action == GLFW_PRESS)
 	{
-		temp=true;
+		shapes[1].vertices = subdivision(shapes[1].vertices, slerp);
+		loadGeometryArrays(programs[0], shapes[1]);
 	}
 
 	else if(key == GLFW_KEY_KP_SUBTRACT)
 	{
-
+		
 	}
 
     else if(key == GLFW_KEY_KP_MULTIPLY)
