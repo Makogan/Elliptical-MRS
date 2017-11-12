@@ -259,6 +259,15 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 //extern bool temp;
 extern vector<vec3> subdivision(vector<vec3> verts, vec3(*interp)(vec3,vec3,double));
 extern vec3 slerp(vec3 p1, vec3 p2, double t);
+extern void elliptical_P_Decomposition(vector<vec3> fine, vector<double> w, 
+	vector<vec3> *coarse, vector<vec4> *details, 
+	vec3(*interp)(vec3,vec3,double));
+void elliptical_P_reconstruction(vector<vec3> *fine, vector<double> w, 
+	vector<vec3> coarse, vector<vec4> details, 
+	vec3(*interp)(vec3,vec3,double));
+
+extern vector<double> weights;
+vector<vec4> dets;
 #define CAM_SPEED 0.1f
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
@@ -289,6 +298,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 
     else if(key == GLFW_KEY_R && action == GLFW_PRESS)
    	{
+		   
    	}
 
     else if(key == GLFW_KEY_F12 && action == GLFW_PRESS)
@@ -322,17 +332,40 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     	cam.turnV(radians(-1.f));
 
     else if(key == GLFW_KEY_KP_2)
-    	cam.turnV(radians(1.f));
-
-	else if(key == GLFW_KEY_KP_ADD && action == GLFW_PRESS)
+		cam.turnV(radians(1.f));
+	
+	else if(key == GLFW_KEY_M && action == GLFW_PRESS)
 	{
 		shapes[1].vertices = subdivision(shapes[1].vertices, slerp);
 		loadGeometryArrays(programs[0], shapes[1]);
 	}
 
-	else if(key == GLFW_KEY_KP_SUBTRACT)
+	else if(key == GLFW_KEY_KP_ADD && action == GLFW_PRESS)
 	{
-		
+		//shapes[1].vertices = subdivision(shapes[1].vertices, slerp);
+		vector<vec3> temp=vector<vec3>(shapes[1].vertices.size()*2);
+		elliptical_P_reconstruction(&temp, weights, 
+			shapes[1].vertices, dets, 
+			slerp);
+		cout << shapes[1].vertices.size() << " " << temp.size() << endl;
+		shapes[1].vertices = temp;
+		loadGeometryArrays(programs[0], shapes[1]);
+		//dets.clear();
+	}
+
+	else if(key == GLFW_KEY_KP_SUBTRACT && action == GLFW_PRESS)
+	{
+		//glDisable(GL_DEPTH_TEST);
+		vector<vec3> temp;
+		vector<vec4> loc_dets;
+		elliptical_P_Decomposition(shapes[1].vertices, weights, 
+			&temp, &loc_dets, 
+			slerp);
+	
+		shapes[1].vertices = temp;
+		loc_dets.insert(loc_dets.end(), dets.begin(), dets.end());
+		dets = loc_dets;
+		loadGeometryArrays(programs[0], shapes[1]);
 	}
 
     else if(key == GLFW_KEY_KP_MULTIPLY)

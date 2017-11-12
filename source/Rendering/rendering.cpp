@@ -21,6 +21,7 @@
 #include <stb/stb_image.h>
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb/stb_image_write.h>
+#include <glm/gtx/transform.hpp>
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -618,6 +619,10 @@ vector<vec3> subdivision(vector<vec3> points, vec3(*interp)(vec3,vec3,double))
 		new_shape[i] = interp(new_shape[i], new_shape[(i+1)%new_shape.size()], 0.5);
 	}*/
 
+	for(uint i=0; i<new_shape.size(); i++)
+		cout << "(" << new_shape[i][0] << ", " << new_shape[i][1] << ", " << new_shape[i][2] << ")," << endl;
+	cout << endl;
+
 	return new_shape;
 }
 
@@ -647,28 +652,67 @@ void elliptical_P_Decomposition(vector<vec3> fine, vector<double> w,
 	int n=fine.size();
 	for(int j=w.size()-1; j>=0; j--)
 	{
-		if(j & 1==0)
-			for(int i=0; i<=fine.size()-2; i+=2)
+		if((j&1)==0)
+			for(int i=0; i<=n-2; i+=2)
 			{
-				vec3 mid = interp(fine[((i-1)%n+n)%n], fine[i+1], 0.5f);
-				fine[i] = interp(fine[i],mid,w[j]/(w[j]-1));
+				vec3 mid = interp(fine[((i-1)%n+n)%n], fine[(i+1)%n], 0.5f);
+				fine[i] = interp(fine[i],mid,w[j]/(w[j]-1.f));
 			}
 
 		else
 			for(int i=1; i<=fine.size()-2; i+=2)
 			{
-				vec3 mid = interp(fine[((i-1)%n+n)%n], fine[i+1], 0.5f);
-				fine[i] = interp(fine[i],mid,w[j]/(w[j]-1));
+				vec3 mid = interp(fine[((i-1)%n+n)%n], fine[(i+1)%n], 0.5f);
+				fine[i] = interp(fine[i],mid,w[j]/(w[j]-1.f));
 			}
 	}
-	for(int i=0; i<fine.size()-2;i+=2)
+	for(int i=0; i<=fine.size()-2;i+=2)
 	{
-		vec3 mid = interp(fine[i], fine[i+2], 0.5);
-		(*coarse)[i/2]=fine[i];
-		(*details)[i/2]=vec4(cross(fine[i],mid),acos(dot(normalize(fine[i]), normalize(fine[i+1]))));
+		vec3 mid = interp(fine[i], fine[(i+2)%n], 0.5);
+		/*(*coarse)[i/2]=*/(*coarse).push_back(fine[i]);
+		/*(*details)[i/2]=*/(*details).push_back(vec4(cross(fine[i],mid),acos(dot((fine[i]), (fine[(i+1)%n])))));
 	}
 }
 
+void elliptical_P_reconstruction(vector<vec3> *fine, vector<double> w, 
+	vector<vec3> coarse, vector<vec4> details, 
+	vec3(*interp)(vec3,vec3,double))
+{
+	int n = coarse.size();
+
+	for(int i=0; i<=n-1; i++)
+	{
+		mat4 temp = mat4(1);
+		(*fine)[2*i]=coarse[i];
+		(*fine)[2*i+1]= vec3(rotate(temp, details[i][3], vec3(details[i][0], details[i][1],details[i][2]))
+			* vec4(interp(coarse[i], coarse[(i+1)%n],1/2),1));
+	}
+	int l = w.size();
+	int f = (*fine).size();
+	for(int j=0; j<l-1; j++)
+	{
+		if(j & 1 ==0 )
+		{
+			for(int i=0; i<= 2*n-2; i+=2)
+			{
+				vec3 mid = interp((*fine)[((i-1)%f+f)%f], 
+					(*fine)[(i+1)%f],0.5);
+				(*fine)[i]=interp((*fine)[i], mid, w[j]);
+			}
+		}
+		else
+		{
+			for(int i=1; i<=2*n-1; i+=2)
+			{
+				vec3 mid = interp((*fine)[((i-1)%f+f)%f], 
+					(*fine)[(i+1)%f],0.5);
+				(*fine)[i]=interp((*fine)[i], mid, w[j]);
+			}
+		}
+	}
+}
+
+vector<double> weights = {0.5};
 //main render loop
 void render_loop(GLFWwindow* window)
 {
@@ -678,6 +722,8 @@ void render_loop(GLFWwindow* window)
 	shapes[1].vertices.push_back(rectangle_to_sphere(vec2(0.1, 1), 1));
 	shapes[1].vertices.push_back(rectangle_to_sphere(vec2(0.1, 1.5), 1));
 	shapes[1].vertices.push_back(rectangle_to_sphere(vec2(0.5, 1.5), 1));
+
+	//shapes[1].vertices = fine_points;
 
 	loadGeometryArrays(programs[0], shapes[0]);
 	loadGeometryArrays(programs[0], shapes[1]);
