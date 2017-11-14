@@ -341,7 +341,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 	
 	else if(key == GLFW_KEY_M && action == GLFW_PRESS)
 	{
-		holder = subdivision(holder, lerp);
+		holder = subdivision(holder, slerp);
 		dtof(holder, shapes[1].vertices);
 		loadGeometryArrays(programs[0], shapes[1]);
 	}
@@ -352,7 +352,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 		vector<dvec3> temp=vector<dvec3>(holder.size()*2);
 		elliptical_P_reconstruction(&temp, weights, 
 			holder, dets, 
-			lerp);
+			slerp);
 		//cout << shapes[1].vertices.size() << " " << temp.size() << endl;
 		holder = temp;
 		dtof(holder, shapes[1].vertices);
@@ -367,7 +367,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 		vector<dvec4> loc_dets;
 		elliptical_P_Decomposition(holder, weights, 
 			&temp, &loc_dets, 
-			lerp);
+			slerp);
 	
 		holder = temp;
 		loc_dets.insert(loc_dets.end(), dets.begin(), dets.end());

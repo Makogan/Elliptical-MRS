@@ -647,6 +647,8 @@ void elliptical_P_Decomposition(vector<dvec3> fine, vector<double> w,
 		dvec3 mid = interp(fine[i], fine[(i+2)%m], 0.5);
 		/*(*coarse)[i/2]=*/(*coarse).push_back(fine[i]);
 		/*(*details)[i/2]=*/(*details).push_back(dvec4(cross(fine[i],mid),acos(dot((fine[i]), (fine[(i+1)%m])))));
+		dvec4 t = (*details)[i];
+		cout << t[0] << ", " << t[1] <<  ", " << t[2] << ", " << t[3] << endl;
 	}
 }
 
