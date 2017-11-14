@@ -257,17 +257,22 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 
 }
 //extern bool temp;
-extern vector<vec3> subdivision(vector<vec3> verts, vec3(*interp)(vec3,vec3,double));
-extern vec3 slerp(vec3 p1, vec3 p2, double t);
-extern void elliptical_P_Decomposition(vector<vec3> fine, vector<double> w, 
-	vector<vec3> *coarse, vector<vec4> *details, 
-	vec3(*interp)(vec3,vec3,double));
-void elliptical_P_reconstruction(vector<vec3> *fine, vector<double> w, 
-	vector<vec3> coarse, vector<vec4> details, 
-	vec3(*interp)(vec3,vec3,double));
+extern vector<dvec3> subdivision(vector<dvec3> verts, dvec3(*interp)(dvec3,dvec3,double));
+extern dvec3 slerp(dvec3 p1, dvec3 p2, double t);
+extern dvec3 lerp(dvec3 p1, dvec3 p2, double t);
+extern void elliptical_P_Decomposition(vector<dvec3> fine, vector<double> w, 
+	vector<dvec3> *coarse, vector<dvec4> *details, 
+	dvec3(*interp)(dvec3,dvec3,double));
+void elliptical_P_reconstruction(vector<dvec3> *fine, vector<double> w, 
+	vector<dvec3> coarse, vector<dvec4> details, 
+	dvec3(*interp)(dvec3,dvec3,double));
 
 extern vector<double> weights;
-vector<vec4> dets;
+vector<dvec4> dets;
+extern void dtof(vector<dvec3> ds, vector<vec3> &fs);
+extern void ftod(vector<vec3> fs, vector<dvec3> &ds);
+extern vector<dvec3> holder;
+
 #define CAM_SPEED 0.1f
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
@@ -336,19 +341,21 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 	
 	else if(key == GLFW_KEY_M && action == GLFW_PRESS)
 	{
-		shapes[1].vertices = subdivision(shapes[1].vertices, slerp);
+		holder = subdivision(holder, lerp);
+		dtof(holder, shapes[1].vertices);
 		loadGeometryArrays(programs[0], shapes[1]);
 	}
 
 	else if(key == GLFW_KEY_KP_ADD && action == GLFW_PRESS)
 	{
 		//shapes[1].vertices = subdivision(shapes[1].vertices, slerp);
-		vector<vec3> temp=vector<vec3>(shapes[1].vertices.size()*2);
+		vector<dvec3> temp=vector<dvec3>(holder.size()*2);
 		elliptical_P_reconstruction(&temp, weights, 
-			shapes[1].vertices, dets, 
-			slerp);
-		cout << shapes[1].vertices.size() << " " << temp.size() << endl;
-		shapes[1].vertices = temp;
+			holder, dets, 
+			lerp);
+		//cout << shapes[1].vertices.size() << " " << temp.size() << endl;
+		holder = temp;
+		dtof(holder, shapes[1].vertices);
 		loadGeometryArrays(programs[0], shapes[1]);
 		//dets.clear();
 	}
@@ -356,15 +363,16 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 	else if(key == GLFW_KEY_KP_SUBTRACT && action == GLFW_PRESS)
 	{
 		//glDisable(GL_DEPTH_TEST);
-		vector<vec3> temp;
-		vector<vec4> loc_dets;
-		elliptical_P_Decomposition(shapes[1].vertices, weights, 
+		vector<dvec3> temp;
+		vector<dvec4> loc_dets;
+		elliptical_P_Decomposition(holder, weights, 
 			&temp, &loc_dets, 
-			slerp);
+			lerp);
 	
-		shapes[1].vertices = temp;
+		holder = temp;
 		loc_dets.insert(loc_dets.end(), dets.begin(), dets.end());
 		dets = loc_dets;
+		dtof(holder, shapes[1].vertices);
 		loadGeometryArrays(programs[0], shapes[1]);
 	}
 

@@ -569,17 +569,22 @@ void ellipse(vector<vec3> &vertices, vector<uint> &indices, vector<vec3> &normal
 	}
 }
 
-vec3 slerp(vec3 p1, vec3 p2, double t)
+dvec3 lerp(dvec3 p1, dvec3 p2, double t)
 {
-	vec3 u1 = normalize(p1);
-	vec3 u2 = normalize(p2);
+	return (1-t)*p1+t*p2;
+}
+
+dvec3 slerp(dvec3 p1, dvec3 p2, double t)
+{
+	dvec3 u1 = normalize(p1);
+	dvec3 u2 = normalize(p2);
 
 	double omega = acos(dot(p1,p2));
 
 	double c1=sin((1-t)*omega)/(sin(omega));
 	double c2=sin(t*omega)/sin(omega);
 
-	return (float)c1*p1+(float)c2*p2;
+	return c1*p1+c2*p2;
 }
 
 vec3 rectangle_to_sphere(vec2 p, float r)
@@ -588,12 +593,12 @@ vec3 rectangle_to_sphere(vec2 p, float r)
 	return vec3(r*cos(u)*sin(v), r*sin(u)*sin(v), r*cos(v));
 }
 
-vector<vec3> subdivision(vector<vec3> points, vec3(*interp)(vec3,vec3,double))
+vector<dvec3> subdivision(vector<dvec3> points, dvec3(*interp)(dvec3,dvec3,double))
 {
-	vector<vec3> new_shape;
+	vector<dvec3> new_shape;
 
 	//point duplication
-	for(vec3 point : points)
+	for(dvec3 point : points)
 	{
 		new_shape.push_back(point);
 		new_shape.push_back(point);
@@ -613,79 +618,50 @@ vector<vec3> subdivision(vector<vec3> points, vec3(*interp)(vec3,vec3,double))
 		new_shape[2*i+1]=interp(new_shape[2*i+1], interp(new_shape[2*i], new_shape[(2*i+2)%n], 0.5), 0.5);
 	}
 
-	//smoothing
-	/*for(uint i=0; i<new_shape.size(); i++)
-	{
-		new_shape[i] = interp(new_shape[i], new_shape[(i+1)%new_shape.size()], 0.5);
-	}*/
-
-	for(uint i=0; i<new_shape.size(); i++)
-		cout << "(" << new_shape[i][0] << ", " << new_shape[i][1] << ", " << new_shape[i][2] << ")," << endl;
-	cout << endl;
-
 	return new_shape;
 }
 
-/*
-	//G_0
-	for(uint i=0; i<n/2; i++)
-	{
-		new_shape[2*i]=interp(new_shape[((2*i-1)%n+n)%n], new_shape[(2*i+1)%n], 0.5);
-	}
-
-	//G_1
-	for(uint i=0; i<n/2; i++)
-	{
-		new_shape[2*i+1]=interp(new_shape[2*i], new_shape[(2*i+2)%n], 0.5);
-	}
-*/
-
-vector<vec3> reverse_subdivision(vector<vec3> points, vec3(*interp)(vec3,vec3,double))
+void elliptical_P_Decomposition(vector<dvec3> fine, vector<double> w, 
+	vector<dvec3> *coarse, vector<dvec4> *details, 
+	dvec3(*interp)(dvec3,dvec3,double))
 {
-
-}
-
-void elliptical_P_Decomposition(vector<vec3> fine, vector<double> w, 
-	vector<vec3> *coarse, vector<vec4> *details, 
-	vec3(*interp)(vec3,vec3,double))
-{
-	int n=fine.size();
+	int m=fine.size();
 	for(int j=w.size()-1; j>=0; j--)
 	{
 		if((j&1)==0)
-			for(int i=0; i<=n-2; i+=2)
+			for(int i=0; i<=m-2; i+=2)
 			{
-				vec3 mid = interp(fine[((i-1)%n+n)%n], fine[(i+1)%n], 0.5f);
+				dvec3 mid = interp(fine[((i-1)%m+m)%m], fine[(i+1)%m], 0.5f);
 				fine[i] = interp(fine[i],mid,w[j]/(w[j]-1.f));
 			}
 
 		else
-			for(int i=1; i<=fine.size()-2; i+=2)
+			for(int i=1; i<=m-2; i+=2)
 			{
-				vec3 mid = interp(fine[((i-1)%n+n)%n], fine[(i+1)%n], 0.5f);
+				dvec3 mid = interp(fine[((i-1)%m+m)%m], fine[(i+1)%m], 0.5f);
 				fine[i] = interp(fine[i],mid,w[j]/(w[j]-1.f));
 			}
 	}
-	for(int i=0; i<=fine.size()-2;i+=2)
+	for(int i=0; i<=m-2;i+=2)
 	{
-		vec3 mid = interp(fine[i], fine[(i+2)%n], 0.5);
+		dvec3 mid = interp(fine[i], fine[(i+2)%m], 0.5);
 		/*(*coarse)[i/2]=*/(*coarse).push_back(fine[i]);
-		/*(*details)[i/2]=*/(*details).push_back(vec4(cross(fine[i],mid),acos(dot((fine[i]), (fine[(i+1)%n])))));
+		/*(*details)[i/2]=*/(*details).push_back(dvec4(cross(fine[i],mid),acos(dot((fine[i]), (fine[(i+1)%m])))));
 	}
 }
 
-void elliptical_P_reconstruction(vector<vec3> *fine, vector<double> w, 
-	vector<vec3> coarse, vector<vec4> details, 
-	vec3(*interp)(vec3,vec3,double))
+void elliptical_P_reconstruction(vector<dvec3> *fine, vector<double> w, 
+	vector<dvec3> coarse, vector<dvec4> details, 
+	dvec3(*interp)(dvec3,dvec3,double))
 {
 	int n = coarse.size();
 
 	for(int i=0; i<=n-1; i++)
 	{
-		mat4 temp = mat4(1);
+		dmat4 temp = dmat4(1);
 		(*fine)[2*i]=coarse[i];
-		(*fine)[2*i+1]= vec3(rotate(temp, details[i][3], vec3(details[i][0], details[i][1],details[i][2]))
-			* vec4(interp(coarse[i], coarse[(i+1)%n],1/2),1));
+		(*fine)[2*i+1]= dvec3(rotate(temp, details[i][3], dvec3(details[i][0], details[i][1],details[i][2]))
+			* dvec4(interp(coarse[i], coarse[(i+1)%n],1/2),1));
 	}
 	int l = w.size();
 	int f = (*fine).size();
@@ -695,7 +671,7 @@ void elliptical_P_reconstruction(vector<vec3> *fine, vector<double> w,
 		{
 			for(int i=0; i<= 2*n-2; i+=2)
 			{
-				vec3 mid = interp((*fine)[((i-1)%f+f)%f], 
+				dvec3 mid = interp((*fine)[((i-1)%f+f)%f], 
 					(*fine)[(i+1)%f],0.5);
 				(*fine)[i]=interp((*fine)[i], mid, w[j]);
 			}
@@ -704,7 +680,7 @@ void elliptical_P_reconstruction(vector<vec3> *fine, vector<double> w,
 		{
 			for(int i=1; i<=2*n-1; i+=2)
 			{
-				vec3 mid = interp((*fine)[((i-1)%f+f)%f], 
+				dvec3 mid = interp((*fine)[((i-1)%f+f)%f], 
 					(*fine)[(i+1)%f],0.5);
 				(*fine)[i]=interp((*fine)[i], mid, w[j]);
 			}
@@ -713,7 +689,24 @@ void elliptical_P_reconstruction(vector<vec3> *fine, vector<double> w,
 }
 
 vector<double> weights = {0.5};
+vector<dvec3> holder;
 //main render loop
+void dtof(vector<dvec3> ds, vector<vec3> &fs)
+{
+	fs = vector<vec3>(ds.size());
+	for(uint i=0; i<ds.size(); i++)
+	{
+		fs[i]=vec3(ds[i]);
+	}
+}
+void ftod(vector<vec3> fs, vector<dvec3> &ds)
+{
+	ds = vector<dvec3>(fs.size());
+	for(uint i=0; i<fs.size(); i++)
+	{
+		ds[i]=dvec3(fs[i]);
+	}
+}
 void render_loop(GLFWwindow* window)
 {
 	ellipse(shapes[0].vertices, shapes[0].indices, shapes[0].normals, 1.f,1.f,1.f);
@@ -728,6 +721,7 @@ void render_loop(GLFWwindow* window)
 	loadGeometryArrays(programs[0], shapes[0]);
 	loadGeometryArrays(programs[0], shapes[1]);
 
+	ftod(shapes[1].vertices, holder);
     while (!glfwWindowShouldClose(window))
 	{
 		/*if(temp)
@@ -746,7 +740,7 @@ void render_loop(GLFWwindow* window)
 
 		loadColor(vec4(0,0.5,0.9,1), programs[0]);
 		//loadTexture(programs[0], textures[0]);
-		render(programs[0], shapes[0], GL_TRIANGLE_STRIP);
+		//render(programs[0], shapes[0], GL_TRIANGLE_STRIP);
 
 		glDisable(GL_DEPTH_TEST);
 		loadColor(vec4(1.f,0,0,1), programs[0]);
