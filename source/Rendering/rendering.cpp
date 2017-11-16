@@ -598,10 +598,10 @@ vector<dvec3> subdivision(vector<dvec3> points, dvec3(*interp)(dvec3,dvec3,doubl
 	vector<dvec3> new_shape;
 
 	//point duplication
-	for(dvec3 point : points)
+	for(uint i=0; i<points.size() ;i++)
 	{
-		new_shape.push_back(point);
-		new_shape.push_back(point);
+		new_shape.push_back(points[i]);
+		new_shape.push_back(interp(points[i], points[(i+1)%points.size()], 0.5));
 	}
 
 	int n=new_shape.size();
@@ -609,14 +609,14 @@ vector<dvec3> subdivision(vector<dvec3> points, dvec3(*interp)(dvec3,dvec3,doubl
 	//G_0
 	for(uint i=0; i<n/2; i++)
 	{
-		new_shape[2*i]=interp(new_shape[2*i], interp(new_shape[((2*i-1)%n+n)%n], new_shape[(2*i+1)%n], 0.5), 0.5);
+		new_shape[2*i]=interp(new_shape[2*i], interp(new_shape[(2*i-1+n)%n], new_shape[(2*i+1)%n], 0.5), 0.5);
 	}
 
 	//G_1
-	for(uint i=0; i<n/2; i++)
+	/*for(uint i=0; i<n/2; i++)
 	{
 		new_shape[2*i+1]=interp(new_shape[2*i+1], interp(new_shape[2*i], new_shape[(2*i+2)%n], 0.5), 0.5);
-	}
+	}*/
 
 	return new_shape;
 }
@@ -631,14 +631,14 @@ void elliptical_P_Decomposition(vector<dvec3> fine, vector<double> w,
 		if((j&1)==0)
 			for(int i=0; i<=m-2; i+=2)
 			{
-				dvec3 mid = interp(fine[((i-1)%m+m)%m], fine[(i+1)%m], 0.5f);
+				dvec3 mid = interp(fine[(i-1+m)%m], fine[(i+1)%m], 0.5f);
 				fine[i] = interp(fine[i],mid,w[j]/(w[j]-1.f));
 			}
 
 		else
-			for(int i=1; i<=m-2; i+=2)
+			for(int i=1; i<=/*m-2*/m-1; i+=2)
 			{
-				dvec3 mid = interp(fine[((i-1)%m+m)%m], fine[(i+1)%m], 0.5f);
+				dvec3 mid = interp(fine[(i-1+m)%m], fine[(i+1)%m], 0.5f);
 				fine[i] = interp(fine[i],mid,w[j]/(w[j]-1.f));
 			}
 	}
@@ -646,7 +646,8 @@ void elliptical_P_Decomposition(vector<dvec3> fine, vector<double> w,
 	{
 		dvec3 mid = interp(fine[i], fine[(i+2)%m], 0.5);
 		/*(*coarse)[i/2]=*/(*coarse).push_back(fine[i]);
-		/*(*details)[i/2]=*/(*details).push_back(dvec4(cross(fine[i],mid),acos(dot((fine[i]), (fine[(i+1)%m])))));
+		//Changed fine[i] to fine[i+1] fine[(i+1)%m]->mid
+		/*(*details)[i/2]=*/(*details).push_back(dvec4(cross(fine[i+1],mid),acos(dot((fine[i+1]), (mid)))));
 		dvec4 t = (*details)[i];
 		cout << t[0] << ", " << t[1] <<  ", " << t[2] << ", " << t[3] << endl;
 	}
@@ -667,13 +668,13 @@ void elliptical_P_reconstruction(vector<dvec3> *fine, vector<double> w,
 	}
 	int l = w.size();
 	int f = (*fine).size();
-	for(int j=0; j<l-1; j++)
+	for(int j=0; j<=l-1; j++)
 	{
 		if(j & 1 ==0 )
 		{
 			for(int i=0; i<= 2*n-2; i+=2)
 			{
-				dvec3 mid = interp((*fine)[((i-1)%f+f)%f], 
+				dvec3 mid = interp((*fine)[(i-1+f)%f], 
 					(*fine)[(i+1)%f],0.5);
 				(*fine)[i]=interp((*fine)[i], mid, w[j]);
 			}
@@ -682,7 +683,7 @@ void elliptical_P_reconstruction(vector<dvec3> *fine, vector<double> w,
 		{
 			for(int i=1; i<=2*n-1; i+=2)
 			{
-				dvec3 mid = interp((*fine)[((i-1)%f+f)%f], 
+				dvec3 mid = interp((*fine)[(i-1+f)%f], 
 					(*fine)[(i+1)%f],0.5);
 				(*fine)[i]=interp((*fine)[i], mid, w[j]);
 			}
