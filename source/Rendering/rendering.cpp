@@ -579,14 +579,17 @@ dvec3 slerp(dvec3 p1, dvec3 p2, double t)
 	dvec3 u1 = normalize(p1);
 	dvec3 u2 = normalize(p2);
 
-	double omega = acos(dot(p1,p2));
+	double omega = acos(dot(u1,u2));
+
+	if(abs(omega) < 0.00000001 || isnan(omega))
+		return p1;
 
 	double c1=sin((1-t)*omega)/(sin(omega));
 	double c2=sin(t*omega)/sin(omega);
 
 	if(isnan(c1) || isnan(c2))
 	{
-		cout << "you messed up" << endl;
+		cout << "nan error" << endl;
 	}
 
 	return c1*p1+c2*p2;
@@ -756,7 +759,7 @@ void render_loop(GLFWwindow* window)
 
 		loadColor(vec4(0,0.5,0.9,1), programs[0]);
 		//loadTexture(programs[0], textures[0]);
-		//render(programs[0], shapes[0], GL_TRIANGLE_STRIP);
+		render(programs[0], shapes[0], GL_TRIANGLE_STRIP);
 
 		glDisable(GL_DEPTH_TEST);
 		loadColor(vec4(1.f,0,0,1), programs[0]);
