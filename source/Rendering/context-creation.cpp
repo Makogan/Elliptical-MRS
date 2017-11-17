@@ -264,7 +264,7 @@ extern void elliptical_P_Decomposition(vector<dvec3> fine, vector<double> w,
 	vector<dvec3> *coarse, vector<dvec4> *details, 
 	dvec3(*interp)(dvec3,dvec3,double));
 void elliptical_P_reconstruction(vector<dvec3> *fine, vector<double> w, 
-	vector<dvec3> coarse, vector<dvec4> details, 
+	vector<dvec3> coarse, vector<dvec4> &details, 
 	dvec3(*interp)(dvec3,dvec3,double));
 
 extern vector<double> weights;
@@ -341,9 +341,10 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 	
 	else if(key == GLFW_KEY_M && action == GLFW_PRESS)
 	{
-		holder = subdivision(holder, slerp);
+		holder = subdivision(holder, lerp);
 		dtof(holder, shapes[1].vertices);
 		loadGeometryArrays(programs[0], shapes[1]);
+		cout << holder.size() << endl;
 	}
 
 	else if(key == GLFW_KEY_KP_ADD && action == GLFW_PRESS)
@@ -352,28 +353,34 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 		vector<dvec3> temp=vector<dvec3>(holder.size()*2);
 		elliptical_P_reconstruction(&temp, weights, 
 			holder, dets, 
-			slerp);
+			lerp);
 		//cout << shapes[1].vertices.size() << " " << temp.size() << endl;
 		holder = temp;
 		dtof(holder, shapes[1].vertices);
 		loadGeometryArrays(programs[0], shapes[1]);
 		//dets.clear();
+		cout << holder.size() << endl;
+		for(dvec3 v: holder)
+		{
+			//cout << "(" << v[0] << ", "<< v[1] << "," << v[2] <<")" <<endl;
+		}
 	}
 
 	else if(key == GLFW_KEY_KP_SUBTRACT && action == GLFW_PRESS)
 	{
 		//glDisable(GL_DEPTH_TEST);
 		vector<dvec3> temp;
-		vector<dvec4> loc_dets;
+		//vector<dvec4> loc_dets;
 		elliptical_P_Decomposition(holder, weights, 
-			&temp, &loc_dets, 
-			slerp);
+			&temp, &dets, 
+			lerp);
 	
 		holder = temp;
-		loc_dets.insert(loc_dets.end(), dets.begin(), dets.end());
-		dets = loc_dets;
+		//loc_dets.insert(loc_dets.end(), dets.begin(), dets.end());
+		//dets = loc_dets;
 		dtof(holder, shapes[1].vertices);
 		loadGeometryArrays(programs[0], shapes[1]);
+		cout << holder.size() << endl;
 	}
 
     else if(key == GLFW_KEY_KP_MULTIPLY)

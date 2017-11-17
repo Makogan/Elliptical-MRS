@@ -584,6 +584,11 @@ dvec3 slerp(dvec3 p1, dvec3 p2, double t)
 	double c1=sin((1-t)*omega)/(sin(omega));
 	double c2=sin(t*omega)/sin(omega);
 
+	if(isnan(c1) || isnan(c2))
+	{
+		cout << "you messed up" << endl;
+	}
+
 	return c1*p1+c2*p2;
 }
 
@@ -647,30 +652,38 @@ void elliptical_P_Decomposition(vector<dvec3> fine, vector<double> w,
 		dvec3 mid = interp(fine[i], fine[(i+2)%m], 0.5);
 		/*(*coarse)[i/2]=*/(*coarse).push_back(fine[i]);
 		//Changed fine[i] to fine[i+1] fine[(i+1)%m]->mid
-		/*(*details)[i/2]=*/(*details).push_back(dvec4(cross(fine[i+1],mid),acos(dot((fine[i+1]), (mid)))));
-		dvec4 t = (*details)[i];
-		cout << t[0] << ", " << t[1] <<  ", " << t[2] << ", " << t[3] << endl;
+		dvec4 dets = dvec4(cross(fine[i+1],mid),acos(dot((fine[i+1]), (mid))));
+		if(length(vec3(dets)) <= 0.1)
+			dets=dvec4(1,1,1,0);
+		///cout << dets[0] << " " << dets[1] << " " << dets[2] << " " << dets[3] << endl; 
+		/*(*details)[i/2]=*/(*details).push_back(dets);
+		//dvec4 t = (*details)[i];
+		//cout << t[0] << ", " << t[1] <<  ", " << t[2] << ", " << t[3] << endl;
 	}
 }
 
 void elliptical_P_reconstruction(vector<dvec3> *fine, vector<double> w, 
-	vector<dvec3> coarse, vector<dvec4> details, 
+	vector<dvec3> coarse, vector<dvec4> &details, 
 	dvec3(*interp)(dvec3,dvec3,double))
 {
 	int n = coarse.size();
 
-	for(int i=0; i<=n-1; i++)
+	for(int i=n-1; i>=0; i--)
 	{
 		dmat4 temp = dmat4(1);
 		(*fine)[2*i]=coarse[i];
-		(*fine)[2*i+1]= dvec3(rotate(temp, details[i][3], dvec3(details[i][0], details[i][1],details[i][2]))
-			* dvec4(interp(coarse[i], coarse[(i+1)%n],1/2),1));
+		dvec4 det_vec = details.back();
+		details.pop_back();
+
+		(*fine)[2*i+1]= dvec3(rotate(temp, det_vec[3], dvec3(det_vec[0], det_vec[1], det_vec[2]))
+			* dvec4(interp(coarse[i], coarse[(i+1)%n],0.5),1));
+
 	}
 	int l = w.size();
 	int f = (*fine).size();
 	for(int j=0; j<=l-1; j++)
 	{
-		if(j & 1 ==0 )
+		if(j & 1 ==0)
 		{
 			for(int i=0; i<= 2*n-2; i+=2)
 			{
