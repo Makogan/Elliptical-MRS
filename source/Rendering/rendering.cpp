@@ -615,9 +615,9 @@ vector<dvec3> subdivision(vector<dvec3> points, dvec3(*interp)(dvec3,dvec3,doubl
 	int n=new_shape.size();
 
 	//G_0
-	for(uint i=0; i<n/2; i++)
+	for(uint i=0; i<n-1; i+=2)
 	{
-		new_shape[2*i]=interp(new_shape[2*i], interp(new_shape[(2*i-1+n)%n], new_shape[(2*i+1)%n], 0.5), 0.5);
+		new_shape[i]=interp(new_shape[i], interp(new_shape[(i-1+n)%n], new_shape[(i+1)%n], 0.5), 0.5);
 	}
 
 	//G_1
@@ -655,7 +655,7 @@ void elliptical_P_Decomposition(vector<dvec3> fine, vector<double> w,
 		dvec3 mid = interp(fine[i], fine[(i+2)%m], 0.5);
 		/*(*coarse)[i/2]=*/(*coarse).push_back(fine[i]);
 		//Changed fine[i] to fine[i+1] fine[(i+1)%m]->mid
-		dvec4 dets = dvec4(cross(fine[i+1],mid),acos(dot((fine[i+1]), (mid))));
+		dvec4 dets = dvec4(cross(mid,fine[i+1]),acos(dot((fine[i+1]), (mid))));
 		if(length(vec3(dets)) <= 0.1)
 			dets=dvec4(1,1,1,0);
 		///cout << dets[0] << " " << dets[1] << " " << dets[2] << " " << dets[3] << endl; 
@@ -671,39 +671,49 @@ void elliptical_P_reconstruction(vector<dvec3> *fine, vector<double> w,
 {
 	int n = coarse.size();
 
-	for(int i=n-1; i>=0; i--)
+	int offset = details.size() - n;
+	//int offset=0;
+
+	for(int i=0; i<=n-1; i++)
 	{
 		dmat4 temp = dmat4(1);
 		(*fine)[2*i]=coarse[i];
-		dvec4 det_vec = details.back();
-		details.pop_back();
+		dvec4 det_vec = details[i+offset]; 
 
-		(*fine)[2*i+1]= dvec3(rotate(temp, det_vec[3], dvec3(det_vec[0], det_vec[1], det_vec[2]))
-			* dvec4(interp(coarse[i], coarse[(i+1)%n],0.5),1));
-
+		(*fine)[2*i+1]= /*dvec3(rotate(temp, det_vec[3], dvec3(det_vec[0], det_vec[1], det_vec[2]))
+			**/dvec3(dvec4(interp(coarse[i], coarse[(i+1)%n],0.5),1));
 	}
+	for(int i=0; i<=n-1; i++)
+		details.pop_back();
 	int l = w.size();
 	int f = (*fine).size();
 	for(int j=0; j<=l-1; j++)
 	{
-		if(j & 1 ==0)
+		cout << "j: " << j << endl;
+		if((j & 1) ==0)
 		{
+			cout << "yes" << endl;
 			for(int i=0; i<= 2*n-2; i+=2)
 			{
-				dvec3 mid = interp((*fine)[(i-1+f)%f], 
-					(*fine)[(i+1)%f],0.5);
+				dvec3 mid = interp((*fine)[(i-1+f)%f], (*fine)[(i+1)%f],0.5);
 				(*fine)[i]=interp((*fine)[i], mid, w[j]);
 			}
 		}
 		else
 		{
-			for(int i=1; i<=2*n-1; i+=2)
+		/*
+		for(uint i=0; i<n-1; i+=2)
+		{
+			new_shape[i]=interp(new_shape[i], interp(new_shape[(i-1+n)%n], new_shape[(i+1)%n], 0.5), 0.5);
+		}
+		*/
+			for(int i=1; i<=f-1; i+=2)
 			{
-				dvec3 mid = interp((*fine)[(i-1+f)%f], 
-					(*fine)[(i+1)%f],0.5);
-				(*fine)[i]=interp((*fine)[i], mid, w[j]);
+				dvec3 mid = interp((*fine)[(i-1+f)%f], (*fine)[(i+1)%f],0.5);
+				(*fine)[i]= interp((*fine)[i], mid, w[j]);
 			}
 		}
+		
 	}
 }
 
