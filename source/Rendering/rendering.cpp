@@ -680,8 +680,8 @@ void elliptical_P_reconstruction(vector<dvec3> *fine, vector<double> w,
 		(*fine)[2*i]=coarse[i];
 		dvec4 det_vec = details[i+offset]; 
 
-		(*fine)[2*i+1]= /*dvec3(rotate(temp, det_vec[3], dvec3(det_vec[0], det_vec[1], det_vec[2]))
-			**/dvec3(dvec4(interp(coarse[i], coarse[(i+1)%n],0.5),1));
+		(*fine)[2*i+1]= dvec3(rotate(temp, det_vec[3], dvec3(det_vec[0], det_vec[1], det_vec[2]))
+			* dvec4(interp(coarse[i], coarse[(i+1)%n],0.5),1));
 	}
 	for(int i=0; i<=n-1; i++)
 		details.pop_back();
