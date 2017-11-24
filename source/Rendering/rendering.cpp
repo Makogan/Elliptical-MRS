@@ -653,15 +653,11 @@ void elliptical_P_Decomposition(vector<dvec3> fine, vector<double> w,
 	for(int i=0; i<=m-2;i+=2)
 	{
 		dvec3 mid = interp(fine[i], fine[(i+2)%m], 0.5);
-		/*(*coarse)[i/2]=*/(*coarse).push_back(fine[i]);
-		//Changed fine[i] to fine[i+1] fine[(i+1)%m]->mid
-		dvec4 dets = dvec4(cross(mid,fine[i+1]),acos(dot((fine[i+1]), (mid))));
+		(*coarse).push_back(fine[i]);
+		dvec4 dets = dvec4(cross(mid,fine[(i+1)%m]),acos(dot((fine[(i+1)%m]), (mid))));
 		if(length(vec3(dets)) <= 0.1)
 			dets=dvec4(1,1,1,0);
-		///cout << dets[0] << " " << dets[1] << " " << dets[2] << " " << dets[3] << endl; 
-		/*(*details)[i/2]=*/(*details).push_back(dets);
-		//dvec4 t = (*details)[i];
-		//cout << t[0] << ", " << t[1] <<  ", " << t[2] << ", " << t[3] << endl;
+		(*details).push_back(dets);
 	}
 }
 
@@ -672,7 +668,6 @@ void elliptical_P_reconstruction(vector<dvec3> *fine, vector<double> w,
 	int n = coarse.size();
 
 	int offset = details.size() - n;
-	//int offset=0;
 
 	for(int i=0; i<=n-1; i++)
 	{
@@ -689,10 +684,8 @@ void elliptical_P_reconstruction(vector<dvec3> *fine, vector<double> w,
 	int f = (*fine).size();
 	for(int j=0; j<=l-1; j++)
 	{
-		cout << "j: " << j << endl;
 		if((j & 1) ==0)
 		{
-			cout << "yes" << endl;
 			for(int i=0; i<= 2*n-2; i+=2)
 			{
 				dvec3 mid = interp((*fine)[(i-1+f)%f], (*fine)[(i+1)%f],0.5);
@@ -701,12 +694,6 @@ void elliptical_P_reconstruction(vector<dvec3> *fine, vector<double> w,
 		}
 		else
 		{
-		/*
-		for(uint i=0; i<n-1; i+=2)
-		{
-			new_shape[i]=interp(new_shape[i], interp(new_shape[(i-1+n)%n], new_shape[(i+1)%n], 0.5), 0.5);
-		}
-		*/
 			for(int i=1; i<=f-1; i+=2)
 			{
 				dvec3 mid = interp((*fine)[(i-1+f)%f], (*fine)[(i+1)%f],0.5);
@@ -714,6 +701,85 @@ void elliptical_P_reconstruction(vector<dvec3> *fine, vector<double> w,
 			}
 		}
 		
+	}
+}
+
+void elliptical_D_Decomposition(vector<dvec3> fine, vector<double> w, 
+	vector<dvec3> *coarse, vector<dvec4> *details, 
+	dvec3(*interp)(dvec3,dvec3,double))
+{
+	int m=fine.size();
+	for(int j=w.size()-1; j>=0; j--)
+	{
+		if((j&1)==0)
+			for(int i=1; i<=m-1; i+=2)
+			{
+				dvec3 p = fine[i];
+				fine[i] = interp(p, fine[(i+1)%m], w[j]/(2.d*w[j]-2.d));
+				fine[(i+1)%m] = interp(fine[(i+1)%m],p,w[j]/(2.d*w[j]-2.d));
+			}
+
+		else
+			for(int i=0; i<=m-2; i+=2)
+			{
+				dvec3 p = fine[i];
+				fine[i] = interp(p, fine[(i+1)%m], w[j]/2.d);
+				fine[i] = interp(fine[(i+1)%m],p,w[j]/(2*w[j]-2.d));
+			}
+	}
+	for(int i=0; i<=m-2;i+=2)
+	{
+		(*coarse).push_back(interp(fine[i],fine[(i+1)%m], 0.5));
+		dvec4 dets = dvec4(cross(fine[i],fine[(i+1)%m]),acos(dot((fine[(i+1)%m]), fine[i]))/0.5d);
+		if(length(vec3(dets)) <= 0.1)
+			dets=dvec4(1,1,1,0);
+		(*details).push_back(dets);
+	}
+}
+
+void elliptical_D_reconstruction(vector<dvec3> *fine, vector<double> w, 
+	vector<dvec3> coarse, vector<dvec4> &details, 
+	dvec3(*interp)(dvec3,dvec3,double))
+{
+	int n = coarse.size();
+
+	int offset = details.size() - n;
+
+	for(int i=0; i<=n-1; i++)
+	{
+		dmat4 temp = dmat4(1);
+		dvec4 det_vec = details[i+offset]; 
+
+		(*fine)[2*i]= dvec3(rotate(temp, -det_vec[3], dvec3(det_vec[0], det_vec[1], det_vec[2]))
+		* dvec4(coarse[i],1));
+
+		(*fine)[2*i+1]= dvec3(rotate(temp, det_vec[3], dvec3(det_vec[0], det_vec[1], det_vec[2]))
+			* dvec4(coarse[i],1));
+	}
+	for(int i=0; i<=n-1; i++)
+		details.pop_back();
+	int l = w.size();
+	int f = (*fine).size();
+	for(int j=0; j<=l-1; j++)
+	{
+		if((j & 1) ==0)
+		{
+			for(int i=1; i<= 2*n-1; i+=2)
+			{
+				dvec3 p = (*fine)[i];
+				(*fine)[i] = interp(p, (*fine)[(i+1)%f],w[j]/2.d);
+				(*fine)[(i+1)%f] = interp((*fine)[(i+1)%f], p, w[j]/2.d);
+			}
+		}
+		else
+		{
+			for(int i=0; i<=2*n-2; i+=2)
+			{
+				dvec3 p = (*fine)[i];
+				(*fine)[i] = interp(p, (*fine)[(i+1)%f],w[j]/2.d);
+				(*fine)[(i+1)%f]= interp((*fine)[i+1], p, w[j]/2.d);
+			}
+		}
 	}
 }
 

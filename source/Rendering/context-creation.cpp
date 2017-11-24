@@ -260,10 +260,10 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 extern vector<dvec3> subdivision(vector<dvec3> verts, dvec3(*interp)(dvec3,dvec3,double));
 extern dvec3 slerp(dvec3 p1, dvec3 p2, double t);
 extern dvec3 lerp(dvec3 p1, dvec3 p2, double t);
-extern void elliptical_P_Decomposition(vector<dvec3> fine, vector<double> w, 
+extern void elliptical_D_Decomposition(vector<dvec3> fine, vector<double> w, 
 	vector<dvec3> *coarse, vector<dvec4> *details, 
 	dvec3(*interp)(dvec3,dvec3,double));
-void elliptical_P_reconstruction(vector<dvec3> *fine, vector<double> w, 
+void elliptical_D_reconstruction(vector<dvec3> *fine, vector<double> w, 
 	vector<dvec3> coarse, vector<dvec4> &details, 
 	dvec3(*interp)(dvec3,dvec3,double));
 
@@ -344,26 +344,19 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 		holder = subdivision(holder, slerp);
 		dtof(holder, shapes[1].vertices);
 		loadGeometryArrays(programs[0], shapes[1]);
-		cout << holder.size() << endl;
 	}
 
 	else if(key == GLFW_KEY_KP_ADD && action == GLFW_PRESS)
 	{
 		//shapes[1].vertices = subdivision(shapes[1].vertices, slerp);
 		vector<dvec3> temp=vector<dvec3>(holder.size()*2);
-		elliptical_P_reconstruction(&temp, weights, 
+		elliptical_D_reconstruction(&temp, weights, 
 			holder, dets, 
 			slerp);
 		//cout << shapes[1].vertices.size() << " " << temp.size() << endl;
 		holder = temp;
 		dtof(holder, shapes[1].vertices);
 		loadGeometryArrays(programs[0], shapes[1]);
-		//dets.clear();
-		cout << holder.size() << endl;
-		for(dvec3 v: holder)
-		{
-			//cout << "(" << v[0] << ", "<< v[1] << "," << v[2] <<")" <<endl;
-		}
 	}
 
 	else if(key == GLFW_KEY_KP_SUBTRACT && action == GLFW_PRESS)
@@ -371,7 +364,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 		//glDisable(GL_DEPTH_TEST);
 		vector<dvec3> temp;
 		//vector<dvec4> loc_dets;
-		elliptical_P_Decomposition(holder, weights, 
+		elliptical_D_Decomposition(holder, weights, 
 			&temp, &dets, 
 			slerp);
 	
@@ -380,7 +373,6 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 		//dets = loc_dets;
 		dtof(holder, shapes[1].vertices);
 		loadGeometryArrays(programs[0], shapes[1]);
-		cout << holder.size() << endl;
 	}
 
     else if(key == GLFW_KEY_KP_MULTIPLY)
