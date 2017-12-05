@@ -557,7 +557,9 @@ void ellipse(vector<vec3> &vertices, vector<uint> &indices, vector<vec3> &normal
 		float v=(i/99.f)*M_PI;
 		for(uint j=0; j<100; j++)
 		{
+			float correction = sin(v)==0? 0 : 1.f/sin(v);
 			float u=(j/99.f)*2*M_PI;
+			u=u*correction;
 			vec3 normal = vec3(a*cos(u)*sin(v), b*sin(u)*sin(v), c*cos(v));
 			vertices.push_back(normal);
 			indices.push_back(i*100+j);
@@ -567,6 +569,50 @@ void ellipse(vector<vec3> &vertices, vector<uint> &indices, vector<vec3> &normal
 			normals.push_back(normalize(normal));
 		}
 	}
+}
+
+void project_line(vector<vec3> &vertices, vec2 p1, vec2 p2, float a, float b, float c)
+{
+	float step = 0.01;
+	float t = 0;
+	for(uint i=0; i<100; i++)
+	{
+		float f0 = mix(p1[0],p2[0], t);
+		float f1 = mix(p1[1],p2[1], t);
+
+		float theta = abs(f0) < 0.0001? 0 : f1/atan(f1/f0);
+		float r = f0/cos(theta);
+
+		cout << "theta: " << theta << endl;
+		cout << "r: " << r << endl;
+
+		vertices.push_back(vec3(a*cos(theta)*sin(r), b*sin(theta)*sin(r), c*cos(r)));
+
+		t+=step;
+
+		/*vec2 p_point = mix(p1,p2,t);
+		float u = p_point[0];
+		float v = p_point[1];
+		float correction = abs(sin(v))<=0.001? 0 : 1.f/sin(v);
+		u=u*correction;
+		vertices.push_back(vec3(a*cos(u)*sin(v), b*sin(u)*sin(v), c*cos(v)));
+		t+=step;*/
+	}
+}
+
+dvec3 project_point(dvec3 p, float a, float b, float c)
+{
+	double vx=p[0], vy=p[1], vz=p[2];
+
+	vx*=vx, vy*=vy, vz*=vz;
+
+	a*=a, b*=b, c*=c;
+
+	vx=vx/a, vy=vy/b, vz=vz/c;
+
+	double t = 1.d/sqrt(vx+vy+vz);
+
+	return t*p;
 }
 
 dvec3 lerp(dvec3 p1, dvec3 p2, double t)
@@ -595,10 +641,10 @@ dvec3 slerp(dvec3 p1, dvec3 p2, double t)
 	return c1*p1+c2*p2;
 }
 
-vec3 rectangle_to_sphere(vec2 p, float r)
+vec3 rectangle_to_sphere(vec2 p, float a, float b, float c)
 {
 	float u=p[0], v=p[1]; 
-	return vec3(r*cos(u)*sin(v), r*sin(u)*sin(v), r*cos(v));
+	return vec3(a*cos(u)*sin(v), b*sin(u)*sin(v), c*cos(v));
 }
 
 vector<dvec3> subdivision(vector<dvec3> points, dvec3(*interp)(dvec3,dvec3,double))
@@ -802,14 +848,20 @@ void ftod(vector<vec3> fs, vector<dvec3> &ds)
 		ds[i]=dvec3(fs[i]);
 	}
 }
+
+#define a 3
+#define b 1
+#define c 1
 void render_loop(GLFWwindow* window)
 {
-	ellipse(shapes[0].vertices, shapes[0].indices, shapes[0].normals, 1.f,1.f,1.f);
+	ellipse(shapes[0].vertices, shapes[0].indices, shapes[0].normals, a,b,c);
 
-	shapes[1].vertices.push_back(rectangle_to_sphere(vec2(0.5, 1), 1));
-	shapes[1].vertices.push_back(rectangle_to_sphere(vec2(0.1, 1), 1));
-	shapes[1].vertices.push_back(rectangle_to_sphere(vec2(0.1, 1.5), 1));
-	shapes[1].vertices.push_back(rectangle_to_sphere(vec2(0.5, 1.5), 1));
+	shapes[1].vertices.push_back(rectangle_to_sphere(vec2(0.5, 1), a,b,c));
+	shapes[1].vertices.push_back(rectangle_to_sphere(vec2(0.1, 1), a,b,c));
+	shapes[1].vertices.push_back(rectangle_to_sphere(vec2(0.1, 1.5), a,b,c));
+	shapes[1].vertices.push_back(rectangle_to_sphere(vec2(0.5, 1.5), a,b,c));
+
+	//project_line(shapes[1].vertices, vec2(0,0), vec2(M_PI,M_PI),1.01f,1.01f,1.01f);
 
 	//shapes[1].vertices = fine_points;
 
@@ -838,9 +890,17 @@ void render_loop(GLFWwindow* window)
 		render(programs[0], shapes[0], GL_TRIANGLE_STRIP);
 
 		glDisable(GL_DEPTH_TEST);
+		vector<vec3> temp = shapes[1].vertices;
+		for(uint i=0; i<shapes[1].vertices.size(); i++)
+		{
+			shapes[1].vertices[i] = vec3(project_point(shapes[1].vertices[i],a,b,c));
+		}
+		loadGeometryArrays(programs[0], shapes[1]);
 		loadColor(vec4(1.f,0,0,1), programs[0]);
 		render(programs[0], shapes[1], GL_POINTS);
 		glEnable(GL_DEPTH_TEST);
+
+		shapes[1].vertices = temp;
 		
 		glfwPollEvents();
 		glfwSwapBuffers(window);
