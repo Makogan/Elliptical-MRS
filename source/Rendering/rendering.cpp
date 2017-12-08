@@ -600,7 +600,7 @@ void project_line(vector<vec3> &vertices, vec2 p1, vec2 p2, float a, float b, fl
 	}
 }
 
-dvec3 project_point(dvec3 p, float a, float b, float c)
+dvec3 ellipse_project(dvec3 p, float a, float b, float c)
 {
 	double vx=p[0], vy=p[1], vz=p[2];
 
@@ -611,6 +611,17 @@ dvec3 project_point(dvec3 p, float a, float b, float c)
 	vx=vx/a, vy=vy/b, vz=vz/c;
 
 	double t = 1.d/sqrt(vx+vy+vz);
+
+	return t*p;
+}
+
+dvec3 sphere_project(dvec3 p, float r)
+{
+	double vx=p[0], vy=p[1], vz=p[2];
+	
+	vx*=vx, vy*=vy, vz*=vz;
+
+	double t = r/(vx+vy+vz);
 
 	return t*p;
 }
@@ -849,17 +860,14 @@ void ftod(vector<vec3> fs, vector<dvec3> &ds)
 	}
 }
 
-#define a 3
-#define b 1
-#define c 1
 void render_loop(GLFWwindow* window)
 {
-	ellipse(shapes[0].vertices, shapes[0].indices, shapes[0].normals, a,b,c);
+	ellipse(shapes[0].vertices, shapes[0].indices, shapes[0].normals, a_axis,b_axis,c_axis);
 
-	shapes[1].vertices.push_back(rectangle_to_sphere(vec2(0.5, 1), a,b,c));
-	shapes[1].vertices.push_back(rectangle_to_sphere(vec2(0.1, 1), a,b,c));
-	shapes[1].vertices.push_back(rectangle_to_sphere(vec2(0.1, 1.5), a,b,c));
-	shapes[1].vertices.push_back(rectangle_to_sphere(vec2(0.5, 1.5), a,b,c));
+	shapes[1].vertices.push_back(rectangle_to_sphere(vec2(0.5, 1), a_axis,b_axis,c_axis));
+	shapes[1].vertices.push_back(rectangle_to_sphere(vec2(0.1, 1), a_axis,b_axis,c_axis));
+	shapes[1].vertices.push_back(rectangle_to_sphere(vec2(0.1, 1.5), a_axis,b_axis,c_axis));
+	shapes[1].vertices.push_back(rectangle_to_sphere(vec2(0.5, 1.5), a_axis,b_axis,c_axis));
 
 	//project_line(shapes[1].vertices, vec2(0,0), vec2(M_PI,M_PI),1.01f,1.01f,1.01f);
 
@@ -889,18 +897,18 @@ void render_loop(GLFWwindow* window)
 		//loadTexture(programs[0], textures[0]);
 		render(programs[0], shapes[0], GL_TRIANGLE_STRIP);
 
-		glDisable(GL_DEPTH_TEST);
-		vector<vec3> temp = shapes[1].vertices;
+		//glDisable(GL_DEPTH_TEST);
+		/*vector<vec3> temp = shapes[1].vertices;
 		for(uint i=0; i<shapes[1].vertices.size(); i++)
 		{
-			shapes[1].vertices[i] = vec3(project_point(shapes[1].vertices[i],a,b,c));
-		}
+			shapes[1].vertices[i] = vec3(ellipse_project(shapes[1].vertices[i],a,b,c));
+		}*/
 		loadGeometryArrays(programs[0], shapes[1]);
 		loadColor(vec4(1.f,0,0,1), programs[0]);
 		render(programs[0], shapes[1], GL_POINTS);
 		glEnable(GL_DEPTH_TEST);
 
-		shapes[1].vertices = temp;
+		//shapes[1].vertices = temp;
 		
 		glfwPollEvents();
 		glfwSwapBuffers(window);

@@ -211,6 +211,11 @@ GLFWwindow* createWindow()
 */
 //========================================================================================
 
+float max(float a, float b)
+{
+	return a>=b? a : b;
+}
+
 int cursorSelectNode(GLFWwindow *window)
 {
 	/*double xpos, ypos;
@@ -272,6 +277,9 @@ vector<dvec4> dets;
 extern void dtof(vector<dvec3> ds, vector<vec3> &fs);
 extern void ftod(vector<vec3> fs, vector<dvec3> &ds);
 extern vector<dvec3> holder;
+
+extern dvec3 ellipse_project(dvec3 p, float a, float b, float c);
+extern dvec3 sphere_project(dvec3 p, float r);
 
 #define CAM_SPEED 0.1f
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
@@ -341,7 +349,17 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 	
 	else if(key == GLFW_KEY_M && action == GLFW_PRESS)
 	{
+		for(uint i=0; i<holder.size(); i++)
+		{
+			float radius = max(a_axis, b_axis);
+			radius = max(radius, c_axis);
+			holder[i] = sphere_project(holder[i], radius);
+		}
 		holder = subdivision(holder, slerp);
+		for(uint i=0; i<holder.size(); i++)
+		{
+			holder[i] = ellipse_project(holder[i], a_axis, b_axis, c_axis);
+		}
 		dtof(holder, shapes[1].vertices);
 		loadGeometryArrays(programs[0], shapes[1]);
 	}
@@ -350,11 +368,21 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 	{
 		//shapes[1].vertices = subdivision(shapes[1].vertices, slerp);
 		vector<dvec3> temp=vector<dvec3>(holder.size()*2);
+		for(uint i=0; i<holder.size(); i++)
+		{
+			float radius = max(a_axis, b_axis);
+			radius = max(radius, c_axis);
+			holder[i] = sphere_project(holder[i], radius);
+		}
 		elliptical_D_reconstruction(&temp, weights, 
 			holder, dets, 
 			slerp);
 		//cout << shapes[1].vertices.size() << " " << temp.size() << endl;
 		holder = temp;
+		for(uint i=0; i<holder.size(); i++)
+		{
+			holder[i] = ellipse_project(holder[i], a_axis, b_axis, c_axis);
+		}
 		dtof(holder, shapes[1].vertices);
 		loadGeometryArrays(programs[0], shapes[1]);
 	}
@@ -363,14 +391,22 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 	{
 		//glDisable(GL_DEPTH_TEST);
 		vector<dvec3> temp;
-		//vector<dvec4> loc_dets;
+		for(uint i=0; i<holder.size(); i++)
+		{
+			float radius = max(a_axis, b_axis);
+			radius = max(radius, c_axis);
+			holder[i] = sphere_project(holder[i], radius);
+		}
 		elliptical_D_Decomposition(holder, weights, 
 			&temp, &dets, 
 			slerp);
 	
 		holder = temp;
 		//loc_dets.insert(loc_dets.end(), dets.begin(), dets.end());
-		//dets = loc_dets;
+		for(uint i=0; i<holder.size(); i++)
+		{
+			holder[i] = ellipse_project(holder[i], a_axis, b_axis, c_axis);
+		}
 		dtof(holder, shapes[1].vertices);
 		loadGeometryArrays(programs[0], shapes[1]);
 	}

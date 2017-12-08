@@ -39,6 +39,10 @@
 
 #include "Camera.hpp"
 
+#define a_axis 3.f
+#define b_axis 1.f
+#define c_axis 1.f
+
 using namespace std;
 using namespace glm;
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -100,7 +104,6 @@ extern vector<GLuint> programs; //Global list of shading programs
 extern vector<Shader> shaders;  //Global List of shaders
 extern vector<Geometry> shapes; ///GLobal list of geometry shapes temporary
 extern vector<Texture> textures; //Temporary
-
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 //========================================================================================
