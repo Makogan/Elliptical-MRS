@@ -631,6 +631,23 @@ dvec3 lerp(dvec3 p1, dvec3 p2, double t)
 	return (1-t)*p1+t*p2;
 }
 
+dvec3 plerp(dvec3 p1, dvec3 p2, double u)
+{
+	dvec3 n = normalize(p1);
+	dvec3 v1 = cross(p1,p2);
+	dvec3 v2 = cross(n,v1);
+
+	v1 = normalize(v1), v2=normalize(v2);
+
+	double t = dot(n,p1)/dot(n,p2);
+
+	dvec3 projected = t*p2;
+
+	dvec3 new_p = lerp(p1,p2, u);
+
+	return ellipse_project(new_p, a_axis, b_axis, c_axis);
+}
+
 dvec3 slerp(dvec3 p1, dvec3 p2, double t)
 {
 	dvec3 u1 = normalize(p1);
@@ -672,15 +689,20 @@ vector<dvec3> subdivision(vector<dvec3> points, dvec3(*interp)(dvec3,dvec3,doubl
 	int n=new_shape.size();
 
 	//G_0
-	for(uint i=0; i<n-1; i+=2)
+	//if('SCHEME' == 'D')
 	{
-		new_shape[i]=interp(new_shape[i], interp(new_shape[(i-1+n)%n], new_shape[(i+1)%n], 0.5), 0.5);
+		for(uint i=0; i<n-1; i+=2)
+		{
+			new_shape[i]=interp(new_shape[i], interp(new_shape[(i-1+n)%n], new_shape[(i+1)%n], 0.5), 0.5);
+		}
 	}
 
-	//G_1
-	/*for(uint i=0; i<n/2; i++)
+	/*else
 	{
-		new_shape[2*i+1]=interp(new_shape[2*i+1], interp(new_shape[2*i], new_shape[(2*i+2)%n], 0.5), 0.5);
+		for(uint i=1; i<n; i+=2)
+		{
+			new_shape[i]=interp(new_shape[i], interp(new_shape[(i-1+n)%n], new_shape[(i+1)%n], 0.5), 0.5);
+		}
 	}*/
 
 	return new_shape;

@@ -39,9 +39,39 @@
 
 #include "Camera.hpp"
 
+using namespace std;
+
+dvec3 slerp(dvec3 p1, dvec3 p2, double t);
+vector<dvec3> subdivision(vector<dvec3> verts, dvec3(*interp)(dvec3,dvec3,double));
+dvec3 lerp(dvec3 p1, dvec3 p2, double t);
+dvec3 plerp(dvec3 p1, dvec3 p2, double u);
+
+void elliptical_D_Decomposition(vector<dvec3> fine, vector<double> w, 
+	vector<dvec3> *coarse, vector<dvec4> *details, 
+	dvec3(*interp)(dvec3,dvec3,double));
+void elliptical_D_reconstruction(vector<dvec3> *fine, vector<double> w, 
+	vector<dvec3> coarse, vector<dvec4> &details, 
+    dvec3(*interp)(dvec3,dvec3,double));
+void elliptical_P_Decomposition(vector<dvec3> fine, vector<double> w, 
+    vector<dvec3> *coarse, vector<dvec4> *details, 
+    dvec3(*interp)(dvec3,dvec3,double));
+void elliptical_P_reconstruction(vector<dvec3> *fine, vector<double> w, 
+    vector<dvec3> coarse, vector<dvec4> &details, 
+    dvec3(*interp)(dvec3,dvec3,double));
+void dtof(vector<dvec3> ds, vector<vec3> &fs);
+void ftod(vector<vec3> fs, vector<dvec3> &ds);
+
+dvec3 ellipse_project(dvec3 p, float a, float b, float c);
+dvec3 sphere_project(dvec3 p, float r);
+
+extern vector<double> weights;
+extern vector<dvec3> holder;
+
 #define a_axis 3.f
 #define b_axis 1.f
 #define c_axis 1.f
+
+#define INTERP plerp
 
 using namespace std;
 using namespace glm;
