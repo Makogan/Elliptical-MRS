@@ -545,10 +545,27 @@ void DestroyTexture(Texture &texture)
 */
 //========================================================================================
 
-//TODO: verify that the following are up to date and well refactored
+
 /*
 * The following functions are not final at all, if modifications can be done, do them
 */
+
+Graph::Graph(vector<vec3> vertices, vector<uint> indices)
+{
+	graph = vector<vector<uint>>(vertices.size());
+
+	uint n=indices.size();
+	for(uint i=0; i<n; i++)
+	{
+		graph[indices[i]].push_back(indices[(i+1)%n]);
+		graph[indices[(i+1)%n]].push_back(indices[i]);
+	}
+}
+
+void djikstra(Graph* g, uint start, uint end)
+{
+
+}
 
 void ellipse(vector<vec3> &vertices, vector<uint> &indices, vector<vec3> &normals, float a, float b, float c)
 {
@@ -557,9 +574,7 @@ void ellipse(vector<vec3> &vertices, vector<uint> &indices, vector<vec3> &normal
 		float v=(i/99.f)*M_PI;
 		for(uint j=0; j<100; j++)
 		{
-			float correction = sin(v)==0? 0 : 1.f/sin(v);
 			float u=(j/99.f)*2*M_PI;
-			u=u*correction;
 			vec3 normal = vec3(a*cos(u)*sin(v), b*sin(u)*sin(v), c*cos(v));
 			vertices.push_back(normal);
 			indices.push_back(i*100+j);
@@ -917,7 +932,7 @@ void render_loop(GLFWwindow* window)
 
 		loadColor(vec4(0,0.5,0.9,1), programs[0]);
 		//loadTexture(programs[0], textures[0]);
-		render(programs[0], shapes[0], GL_TRIANGLE_STRIP);
+		render(programs[0], shapes[0], GL_LINE_STRIP);
 
 		//glDisable(GL_DEPTH_TEST);
 		/*vector<vec3> temp = shapes[1].vertices;
