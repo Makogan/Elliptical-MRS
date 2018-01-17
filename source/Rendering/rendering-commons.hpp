@@ -71,7 +71,7 @@ extern vector<dvec3> holder;
 #define b_axis 1.f
 #define c_axis 1.f
 
-#define INTERP plerp
+#define INTERP slerp
 
 using namespace std;
 using namespace glm;
