@@ -25,7 +25,7 @@ struct Graph
 {
     vector<vector<uint>> graph;
 
-    Graph(vector<vec3> vertices, vector<uint> indices);
+    Graph(vector<vec3> *vertices, vector<uint> *indices);
 };
 
 //========================================================================================

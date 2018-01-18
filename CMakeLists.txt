@@ -25,7 +25,7 @@ include_directories(${FREETYPE_INCLUDE_DIRS})
 
 target_link_libraries(voxel-world glfw GL GLEW freetype)
 
-SET(CMAKE_CXX_FLAGS "-std=c++1y")
+SET(CMAKE_CXX_FLAGS "-std=c++1y -g")
 
 target_sources(voxel-world PUBLIC ${PROJECT_SOURCE_DIR}/Rendering/context-creation.cpp)
 target_sources(voxel-world PUBLIC ${PROJECT_SOURCE_DIR}/Rendering/rendering.cpp)

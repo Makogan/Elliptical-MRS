@@ -550,15 +550,18 @@ void DestroyTexture(Texture &texture)
 * The following functions are not final at all, if modifications can be done, do them
 */
 
-Graph::Graph(vector<vec3> vertices, vector<uint> indices)
+Graph::Graph(vector<vec3> *vertices, vector<uint> *indices)
 {
-	graph = vector<vector<uint>>(vertices.size());
+	graph = vector<vector<uint>>(vertices->size());
 
-	uint n=indices.size();
+	uint n=indices->size();
+	cout << "n: " << n << endl;
 	for(uint i=0; i<n; i++)
 	{
-		graph[indices[i]].push_back(indices[(i+1)%n]);
-		graph[indices[(i+1)%n]].push_back(indices[i]);
+		cout << "i: " << i << endl;
+		cout << "index:" << (*indices)[i] << ", " << (*indices)[(i+1)%n] << endl;
+		graph[(*indices)[i]].push_back((*indices)[(i+1)%n]);
+		graph[(*indices)[(i+1)%n]].push_back((*indices)[i]);
 	}
 }
 
@@ -577,10 +580,15 @@ void ellipse(vector<vec3> &vertices, vector<uint> &indices, vector<vec3> &normal
 			float u=(j/99.f)*2*M_PI;
 			vec3 normal = vec3(a*cos(u)*sin(v), b*sin(u)*sin(v), c*cos(v));
 			vertices.push_back(normal);
-			indices.push_back(i*100+j);
-			indices.push_back((i+1)*100+j);
-			indices.push_back((i)*100+j+1);
-			indices.push_back((i+1)*100+j+1);
+			indices.push_back((i*100+j)%(100*100));
+			indices.push_back(((i+1)*100+j)%(100*100));
+			indices.push_back(((i)*100+j+1)%(100*100));
+			indices.push_back((i*100+j)%(100*100));
+
+			indices.push_back(((i+1)*100+j)%(100*100));
+			indices.push_back(((i)*100+j+1)%(100*100));
+			indices.push_back(((i+1)*100+j+1)%(100*100));
+			indices.push_back(((i+1)*100+j)%(100*100));
 			normals.push_back(normalize(normal));
 		}
 	}
@@ -900,6 +908,8 @@ void ftod(vector<vec3> fs, vector<dvec3> &ds)
 void render_loop(GLFWwindow* window)
 {
 	ellipse(shapes[0].vertices, shapes[0].indices, shapes[0].normals, a_axis,b_axis,c_axis);
+
+	Graph g = Graph(&(shapes[0].vertices), &(shapes[0].indices));
 
 	shapes[1].vertices.push_back(rectangle_to_sphere(vec2(0.5, 1), a_axis,b_axis,c_axis));
 	shapes[1].vertices.push_back(rectangle_to_sphere(vec2(0.1, 1), a_axis,b_axis,c_axis));
