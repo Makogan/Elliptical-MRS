@@ -582,13 +582,13 @@ void ellipse(vector<vec3> &vertices, vector<uint> &indices, vector<vec3> &normal
 			vertices.push_back(normal);
 			indices.push_back((i*100+j)%(100*100));
 			indices.push_back(((i+1)*100+j)%(100*100));
+
 			indices.push_back(((i)*100+j+1)%(100*100));
 			indices.push_back((i*100+j)%(100*100));
 
 			indices.push_back(((i+1)*100+j)%(100*100));
 			indices.push_back(((i)*100+j+1)%(100*100));
-			indices.push_back(((i+1)*100+j+1)%(100*100));
-			indices.push_back(((i+1)*100+j)%(100*100));
+
 			normals.push_back(normalize(normal));
 		}
 	}
@@ -942,7 +942,7 @@ void render_loop(GLFWwindow* window)
 
 		loadColor(vec4(0,0.5,0.9,1), programs[0]);
 		//loadTexture(programs[0], textures[0]);
-		render(programs[0], shapes[0], GL_LINE_STRIP);
+		render(programs[0], shapes[0], GL_LINES);
 
 		//glDisable(GL_DEPTH_TEST);
 		/*vector<vec3> temp = shapes[1].vertices;
