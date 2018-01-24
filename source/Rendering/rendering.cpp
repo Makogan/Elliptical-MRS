@@ -553,21 +553,79 @@ void DestroyTexture(Texture &texture)
 Graph::Graph(vector<vec3> *vertices, vector<uint> *indices)
 {
 	graph = vector<vector<uint>>(vertices->size());
+	nodes = (*vertices);
 
 	uint n=indices->size();
-	cout << "n: " << n << endl;
 	for(uint i=0; i<n; i++)
 	{
-		cout << "i: " << i << endl;
-		cout << "index:" << (*indices)[i] << ", " << (*indices)[(i+1)%n] << endl;
 		graph[(*indices)[i]].push_back((*indices)[(i+1)%n]);
 		graph[(*indices)[(i+1)%n]].push_back((*indices)[i]);
 	}
 }
 
-void djikstra(Graph* g, uint start, uint end)
+void Graph::djikstra(uint start)
 {
+	lengths=vector<double>(graph.size());
+	vector<bool> visited = vector<bool>(graph.size());
 
+	cout << nodes.size() << ", " << lengths.size() << ", " << visited.size() << endl;
+	
+	for(uint i=0; i<lengths.size(); i++)
+		lengths[i]=1.f/0.f;
+
+	for(uint i=0; i<lengths.size(); i++)
+		visited[i]=false;
+	
+	lengths[start] = 0;
+
+	vector<uint> stack;
+
+	stack.push_back(start);
+
+	while(nodes.size()>0)
+	{
+		uint current = stack.back();
+		stack.pop_back();
+
+		for(uint loc_n=0; loc_n<graph[current].size(); loc_n++)
+		{
+			cout << current << endl;
+			uint neighbour = (graph[current][loc_n]);
+			vec3 edge = (nodes[current])-nodes[neighbour];
+			double edge_length = (double)length(edge);
+
+			double n_length = lengths[current]+edge_length;
+			if(n_length < lengths[neighbour])
+				lengths[neighbour] = n_length;
+
+			if(!visited[neighbour])
+			{
+				if(neighbour>=10000)
+					cout << current << ", " << neighbour << endl;
+				stack.push_back(neighbour);
+			}
+
+			visited[neighbour]=true;
+		}
+	}
+}
+
+void Graph::toString()
+{
+	for(uint i=0; i<graph.size(); i++)
+	{
+		cout << i << ": ";
+		for(uint j=0; j<graph[i].size(); j++)
+		{
+			//cout << j << " ";
+			if(graph[i][j] >= 10000)
+				cout << "HOLY SHIT" << i << " " << graph[i][j] << endl;
+			
+			cout << graph[i][j] << ", ";
+
+		}
+		cout << endl;
+	}
 }
 
 void ellipse(vector<vec3> &vertices, vector<uint> &indices, vector<vec3> &normals, float a, float b, float c)
@@ -910,6 +968,9 @@ void render_loop(GLFWwindow* window)
 	ellipse(shapes[0].vertices, shapes[0].indices, shapes[0].normals, a_axis,b_axis,c_axis);
 
 	Graph g = Graph(&(shapes[0].vertices), &(shapes[0].indices));
+	g.djikstra(100);
+
+	//g.toString();
 
 	shapes[1].vertices.push_back(rectangle_to_sphere(vec2(0.5, 1), a_axis,b_axis,c_axis));
 	shapes[1].vertices.push_back(rectangle_to_sphere(vec2(0.1, 1), a_axis,b_axis,c_axis));
