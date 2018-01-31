@@ -997,26 +997,68 @@ void ftod(vector<vec3> fs, vector<dvec3> &ds)
 	}
 }
 
+uint inline getIndex(vector<vec3> *vertices, vec3 v)
+{
+	double cDistance = 1.f/0.f;
+	uint minIndex = 0;
+
+	for(uint i=0; i<vertices->size(); i++)
+	{
+		double lDistance = length(v-(*vertices)[i]);
+		if(lDistance < cDistance)
+		{
+			minIndex = i;
+			cDistance = lDistance;
+		}
+	}
+
+	return minIndex;
+}
+
+double calculateAverageLength(vector<vec3> vertices, Graph g)
+{
+	double sum = 0;
+	uint n = vertices.size();
+
+	for(uint i=0; i<n; i++)
+	{
+		uint n1 = getIndex(&g.nodes, vertices[i]);
+		uint n2 = getIndex(&g.nodes, vertices[(i+1)%n]);
+		g.djikstra(n1);
+		sum+=g.node_length(n2);
+
+		if(i%10==0)
+			cout << "Evaluating distance average:" << (float)i/(float)n << "\%" <<endl;
+	}
+
+	sum = sum/vertices.size();
+
+	return sum;
+}
 
 vector<vec3> test = {vec3(0,0,0),vec3(4,0,0),vec3(4,4,0),vec3(0,4,0), vec3(4,8,0)};
 vector<uint> edges {0,1, 1,2, 2,3, 3,0, 0,2, 1,3, 2,4};
+
+Graph g;
 void render_loop(GLFWwindow* window)
 {
 	ellipse(shapes[0].vertices, shapes[0].indices, shapes[0].normals, a_axis,b_axis,c_axis);
 
-	Graph g = Graph(&(shapes[0].vertices), &(shapes[0].indices));
+	g = Graph(&(shapes[0].vertices), &(shapes[0].indices));
 	//Graph g = Graph(&test, &edges);
-	g.djikstra(7770);
-	cout << g.node_length(1770) << endl;
+	/*g.djikstra(6681);
+	cout << g.node_length(9874) << endl;*/
 	//g.toString();
 
-	float temp = acos(dot(g.nodes[7770],g.nodes[1770]));
-	cout << temp << endl;
+	//float temp = acos(dot(g.nodes[6681],g.nodes[9854]));
+	//cout << temp << endl;
 
 	shapes[1].vertices.push_back(rectangle_to_sphere(vec2(0.5, 1), a_axis,b_axis,c_axis));
 	shapes[1].vertices.push_back(rectangle_to_sphere(vec2(0.1, 1), a_axis,b_axis,c_axis));
 	shapes[1].vertices.push_back(rectangle_to_sphere(vec2(0.1, 1.5), a_axis,b_axis,c_axis));
 	shapes[1].vertices.push_back(rectangle_to_sphere(vec2(0.5, 1.5), a_axis,b_axis,c_axis));
+
+	//cout << calculateAverageLength(shapes[1].vertices, g) << endl;
 
 	//project_line(shapes[1].vertices, vec2(0,0), vec2(M_PI,M_PI),1.01f,1.01f,1.01f);
 

@@ -83,6 +83,20 @@ using namespace glm;
 *	Structure definitions
 */
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+struct Graph
+{
+    vector<vec3> nodes;
+    vector<vector<uint>> graph;
+    vector<double> lengths;
+
+    Graph(vector<vec3> *vertices, vector<uint> *indices);
+    void djikstra(uint start);
+    double node_length(uint);
+
+    void toString();
+
+    Graph(){}
+};
 
 //TODO: verify the following data structures, maybe program shoud be a list to allow
 //  for multiple programs
@@ -162,5 +176,5 @@ void DestroyTexture(Texture &texture);
 string loadSourceFile(string &filepath);
 
 GLuint createShadingProgram(GLuint vertexShader, GLuint fragmentShader);
-
+double calculateAverageLength(vector<vec3> vertices, Graph g);
 //########################################################################################

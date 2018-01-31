@@ -21,18 +21,7 @@
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-struct Graph
-{
-    vector<vec3> nodes;
-    vector<vector<uint>> graph;
-    vector<double> lengths;
 
-    Graph(vector<vec3> *vertices, vector<uint> *indices);
-    void djikstra(uint start);
-    double node_length(uint);
-
-    void toString();
-};
 
 //========================================================================================
 /*

@@ -264,7 +264,7 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 
 vector<dvec4> dets;
 char scheme = 'D';
-//extern bool temp;
+extern Graph g;
 #define CAM_SPEED 0.1f
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
@@ -418,5 +418,12 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 		vec3 p = cam.getPosition();
 		cout << "("<< p[0] << ", " << p[1] << ", " << p[2] << ")" << endl;
 	}
+
+	else if(key == GLFW_KEY_C && action == GLFW_PRESS)
+	{
+		double a = calculateAverageLength(shapes[1].vertices, g);
+		cout << "Average geodesic distance: " << a << endl;
+	}
 }
+
 //########################################################################################
