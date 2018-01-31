@@ -549,7 +549,6 @@ void DestroyTexture(Texture &texture)
 /*
 * The following functions are not final at all, if modifications can be done, do them
 */
-
 Graph::Graph(vector<vec3> *vertices, vector<uint> *indices)
 {
 	graph = vector<vector<uint>>(vertices->size());
@@ -558,17 +557,41 @@ Graph::Graph(vector<vec3> *vertices, vector<uint> *indices)
 	uint n=indices->size();
 	for(uint i=0; i<n; i++)
 	{
-		graph[(*indices)[i]].push_back((*indices)[(i+1)%n]);
-		graph[(*indices)[(i+1)%n]].push_back((*indices)[i]);
+		uint n1 = (*indices)[(i+1)%n];
+		uint n2 = (*indices)[i];
+		bool seen = false;
+		for(uint j=0; j<graph[n2].size(); j++)
+			if(n1 == graph[n2][j] || n1==n2)
+				seen = true;
+		if(!seen)
+			graph[n2].push_back(n1);
+
+		seen = false;
+		for(uint j=0; j<graph[n1].size(); j++)
+			if(n2 == graph[n1][j] || n1==n2)
+				seen = true;
+		if(!seen)
+			graph[n1].push_back(n2);
 	}
+}
+
+uint getMin(vector<double> *distances, vector<bool> *visited)
+{
+	uint min = 0;
+	for(uint i=0; i<distances->size(); i++)
+	{
+		if((*distances)[i] < (*distances)[min] && !(*visited)[i])
+			min = i;
+	}
+
+	return min;
 }
 
 void Graph::djikstra(uint start)
 {
+	uint toVisit = graph.size();
 	lengths=vector<double>(graph.size());
 	vector<bool> visited = vector<bool>(graph.size());
-
-	cout << nodes.size() << ", " << lengths.size() << ", " << visited.size() << endl;
 	
 	for(uint i=0; i<lengths.size(); i++)
 		lengths[i]=1.f/0.f;
@@ -578,18 +601,12 @@ void Graph::djikstra(uint start)
 	
 	lengths[start] = 0;
 
-	vector<uint> stack;
+	uint current = start;
 
-	stack.push_back(start);
-
-	while(nodes.size()>0)
+	while(toVisit>0)
 	{
-		uint current = stack.back();
-		stack.pop_back();
-
 		for(uint loc_n=0; loc_n<graph[current].size(); loc_n++)
 		{
-			cout << current << endl;
 			uint neighbour = (graph[current][loc_n]);
 			vec3 edge = (nodes[current])-nodes[neighbour];
 			double edge_length = (double)length(edge);
@@ -598,15 +615,10 @@ void Graph::djikstra(uint start)
 			if(n_length < lengths[neighbour])
 				lengths[neighbour] = n_length;
 
-			if(!visited[neighbour])
-			{
-				if(neighbour>=10000)
-					cout << current << ", " << neighbour << endl;
-				stack.push_back(neighbour);
-			}
-
-			visited[neighbour]=true;
+			visited[current]=true;
 		}
+		current = getMin(&lengths, &visited);
+		toVisit--;
 	}
 }
 
@@ -626,8 +638,15 @@ void Graph::toString()
 		}
 		cout << endl;
 	}
+
+	for(uint i=0; i<nodes.size(); i++)
+		cout << "index " << i << ": (" << nodes[i].x << ", "<< nodes[i].y << ", "<< nodes[i].z <<")" << endl;
 }
 
+double Graph::node_length(uint node)
+{
+	return lengths[node];
+}
 void ellipse(vector<vec3> &vertices, vector<uint> &indices, vector<vec3> &normals, float a, float b, float c)
 {
 	for(uint i=0; i<100; i++)
@@ -641,11 +660,26 @@ void ellipse(vector<vec3> &vertices, vector<uint> &indices, vector<vec3> &normal
 			indices.push_back((i*100+j)%(100*100));
 			indices.push_back(((i+1)*100+j)%(100*100));
 
+			indices.push_back(((i+1)*100+j)%(100*100));
+			indices.push_back(((i+1)*100+j+1)%(100*100));
+
+			indices.push_back(((i+1)*100+j+1)%(100*100));
+			indices.push_back((i*100+j)%(100*100));
+
+			indices.push_back((i*100+j)%(100*100));
+			indices.push_back((i*100+j+1)%(100*100));
+
+			indices.push_back((i*100+j+1)%(100*100));
+			indices.push_back(((i+1)*100+j+1)%(100*100));
+
+			/*indices.push_back((i*100+j)%(100*100));
+			indices.push_back(((i+1)*100+j)%(100*100));
+
 			indices.push_back(((i)*100+j+1)%(100*100));
 			indices.push_back((i*100+j)%(100*100));
 
 			indices.push_back(((i+1)*100+j)%(100*100));
-			indices.push_back(((i)*100+j+1)%(100*100));
+			indices.push_back(((i)*100+j+1)%(100*100));*/
 
 			normals.push_back(normalize(normal));
 		}
@@ -963,14 +997,21 @@ void ftod(vector<vec3> fs, vector<dvec3> &ds)
 	}
 }
 
+
+vector<vec3> test = {vec3(0,0,0),vec3(4,0,0),vec3(4,4,0),vec3(0,4,0), vec3(4,8,0)};
+vector<uint> edges {0,1, 1,2, 2,3, 3,0, 0,2, 1,3, 2,4};
 void render_loop(GLFWwindow* window)
 {
 	ellipse(shapes[0].vertices, shapes[0].indices, shapes[0].normals, a_axis,b_axis,c_axis);
 
 	Graph g = Graph(&(shapes[0].vertices), &(shapes[0].indices));
-	g.djikstra(100);
-
+	//Graph g = Graph(&test, &edges);
+	g.djikstra(7770);
+	cout << g.node_length(1770) << endl;
 	//g.toString();
+
+	float temp = acos(dot(g.nodes[7770],g.nodes[1770]));
+	cout << temp << endl;
 
 	shapes[1].vertices.push_back(rectangle_to_sphere(vec2(0.5, 1), a_axis,b_axis,c_axis));
 	shapes[1].vertices.push_back(rectangle_to_sphere(vec2(0.1, 1), a_axis,b_axis,c_axis));
@@ -1003,7 +1044,7 @@ void render_loop(GLFWwindow* window)
 
 		loadColor(vec4(0,0.5,0.9,1), programs[0]);
 		//loadTexture(programs[0], textures[0]);
-		render(programs[0], shapes[0], GL_LINES);
+		render(programs[0], shapes[0], GL_LINE_STRIP);
 
 		//glDisable(GL_DEPTH_TEST);
 		/*vector<vec3> temp = shapes[1].vertices;

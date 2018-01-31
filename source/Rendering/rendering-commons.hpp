@@ -28,6 +28,7 @@
 #include <cstdlib>
 #include <unistd.h>
 #include <time.h>
+#include <queue>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -67,7 +68,7 @@ dvec3 sphere_project(dvec3 p, float r);
 extern vector<double> weights;
 extern vector<dvec3> holder;
 
-#define a_axis 3.f
+#define a_axis 1.f
 #define b_axis 1.f
 #define c_axis 1.f
 
