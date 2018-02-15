@@ -29,10 +29,11 @@
 #include <unistd.h>
 #include <time.h>
 #include <queue>
+#include <algorithm>    // std::sort
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtx/transform.hpp>
+//#include <glm/gtx/transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
 #include <ft2build.h>
@@ -42,10 +43,12 @@
 
 using namespace std;
 
-dvec3 slerp(dvec3 p1, dvec3 p2, double t);
 vector<dvec3> subdivision(vector<dvec3> verts, dvec3(*interp)(dvec3,dvec3,double));
+
 dvec3 lerp(dvec3 p1, dvec3 p2, double t);
+dvec3 slerp(dvec3 p1, dvec3 p2, double t);
 dvec3 plerp(dvec3 p1, dvec3 p2, double u);
+dvec3 ilerp(dvec3 p1, dvec3 p2, double t);
 
 void elliptical_D_Decomposition(vector<dvec3> fine, vector<double> w, 
 	vector<dvec3> *coarse, vector<dvec4> *details, 
@@ -68,11 +71,11 @@ dvec3 sphere_project(dvec3 p, float r);
 extern vector<double> weights;
 extern vector<dvec3> holder;
 
-#define a_axis 1.f
-#define b_axis 1.f
-#define c_axis 1.f
+#define a_axis 1.d
+#define b_axis 1.d
+#define c_axis 1.d
 
-#define INTERP slerp
+#define INTERP ilerp
 
 using namespace std;
 using namespace glm;

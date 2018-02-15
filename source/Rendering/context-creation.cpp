@@ -326,17 +326,17 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     	cam.turnH(radians(1.f));
 
     else if(key == GLFW_KEY_KP_8)
-    	cam.turnV(radians(-1.f));
+    	cam.turnV(radians(1.f));
 
     else if(key == GLFW_KEY_KP_2)
-		cam.turnV(radians(1.f));
+		cam.turnV(radians(-1.f));
 	
 	else if(key == GLFW_KEY_M && action == GLFW_PRESS)
 	{
 		for(uint i=0; i<holder.size(); i++)
 		{
-			float radius = max(a_axis, b_axis);
-			radius = max(radius, c_axis);
+			float radius = std::max(a_axis, b_axis);
+			radius = std::max((double)radius, c_axis);
 			holder[i] = sphere_project(holder[i], radius);
 		}
 		holder = subdivision(holder, slerp);
@@ -355,8 +355,8 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 			vector<dvec3> temp=vector<dvec3>(holder.size()*2);
 			for(uint i=0; i<holder.size(); i++)
 			{
-				float radius = max(a_axis, b_axis);
-				radius = max(radius, c_axis);
+				float radius = std::max(a_axis, b_axis);
+				radius = std::max((double)radius, c_axis);
 				holder[i] = sphere_project(holder[i], radius);
 			}
 			if(scheme == 'D')
@@ -384,8 +384,8 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 		vector<dvec3> temp;
 		for(uint i=0; i<holder.size(); i++)
 		{
-			float radius = max(a_axis, b_axis);
-			radius = max(radius, c_axis);
+			float radius = std::max(a_axis, b_axis);
+			radius = std::max((double)radius, c_axis);
 			holder[i] = sphere_project(holder[i], radius);
 		}
 		if(scheme == 'D')
@@ -422,7 +422,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 	else if(key == GLFW_KEY_C && action == GLFW_PRESS)
 	{
 		double a = calculateAverageLength(shapes[1].vertices, g);
-		cout << "Average geodesic distance: " << a << endl;
+		cout << endl;
 	}
 }
 

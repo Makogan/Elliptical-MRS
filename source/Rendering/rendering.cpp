@@ -21,7 +21,6 @@
 #include <stb/stb_image.h>
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb/stb_image_write.h>
-#include <glm/gtx/transform.hpp>
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -784,6 +783,28 @@ dvec3 slerp(dvec3 p1, dvec3 p2, double t)
 	return c1*p1+c2*p2;
 }
 
+dvec3 ilerp(dvec3 p1, dvec3 p2, double t)
+{
+	double big = std::max(a_axis,b_axis);
+	big = std::max(big, c_axis);
+
+	p1.x = big/a_axis*p1.x;
+	p1.y = big/b_axis*p1.y;
+	p1.z = big/c_axis*p1.z;
+
+	p2.x = big/a_axis*p2.x;
+	p2.y = big/b_axis*p2.y;
+	p2.z = big/c_axis*p2.z;
+
+	dvec3 result = slerp(p1, p2, t);
+
+	result.x = result.x * a_axis/big;
+	result.y = result.y * b_axis/big;
+	result.z = result.z * c_axis/big;
+
+	return result;
+}
+
 vec3 rectangle_to_sphere(vec2 p, float a, float b, float c)
 {
 	float u=p[0], v=p[1]; 
@@ -1020,18 +1041,41 @@ double calculateAverageLength(vector<vec3> vertices, Graph g)
 	double sum = 0;
 	uint n = vertices.size();
 
+	vector<double> values;
+
 	for(uint i=0; i<n; i++)
 	{
 		uint n1 = getIndex(&g.nodes, vertices[i]);
 		uint n2 = getIndex(&g.nodes, vertices[(i+1)%n]);
 		g.djikstra(n1);
-		sum+=g.node_length(n2);
+		double v = g.node_length(n2);
+		sum+=v;
+		values.push_back(v);
 
 		if(i%10==0)
 			cout << "Evaluating distance average:" << (float)i/(float)n << "\%" <<endl;
 	}
 
+	sort(values.begin(), values.end());
+
+	double median;
+	if(values.size()%2 == 0)
+		median = (values[values.size()/2]+values[values.size()/2+1])/2.f;
+	else
+		median = values[values.size()/2 + 1];
+
 	sum = sum/vertices.size();
+
+	double stdv = 0;
+	for(uint i=0; i<values.size(); i++)
+	{
+		stdv+=pow(values[i]-sum, 2);
+	}
+	stdv = sqrt(stdv);
+	cout << "Average geodesic distance: " << sum << endl;
+	cout << "Median geodesic distance: " << median << endl; 
+	cout << "Standard deviation: " << stdv << endl;
+
 
 	return sum;
 }

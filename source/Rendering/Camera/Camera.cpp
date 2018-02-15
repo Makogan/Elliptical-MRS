@@ -15,7 +15,11 @@
 */
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 #include "Camera.hpp"
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/transform.hpp>
 
+#include <iostream>
+using namespace std;
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 //========================================================================================
@@ -157,20 +161,14 @@ void Camera::turnH(float angle)
 
 void Camera::turnV(float angle)
 {
-	mat4 rotation;
-	if(length(side)>=1)
-	{
-		rotation = rotate(rotation, angle, side);
+	mat4 rotation(1);
+	rotation = rotate(rotation, angle, side);
+	vec4 newForward = vec4(forward, 1);
 
-		vec4 newForward = vec4(forward, 1);
-		vec4 newUp = vec4(up, 1);
+	newForward = rotation*newForward;
 
-		newForward = rotation*newForward;
-		newUp = rotation*newUp;
-
-		forward = vec3(newForward);
-		up = vec3(newUp);
-	}
+	forward = vec3(newForward);
+	forward = normalize(forward);
 }
 
 void Camera::incline(float angle)
