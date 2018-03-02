@@ -646,6 +646,15 @@ double Graph::node_length(uint node)
 {
 	return lengths[node];
 }
+
+uint inline cap(uint num, uint cap)
+{
+	if(num > cap-1)
+		return cap-1;
+
+	return num;
+}
+
 void ellipse(vector<vec3> &vertices, vector<uint> &indices, vector<vec3> &normals, float a, float b, float c)
 {
 	for(uint i=0; i<100; i++)
@@ -656,20 +665,23 @@ void ellipse(vector<vec3> &vertices, vector<uint> &indices, vector<vec3> &normal
 			float u=(j/99.f)*2*M_PI;
 			vec3 normal = vec3(a*cos(u)*sin(v), b*sin(u)*sin(v), c*cos(v));
 			vertices.push_back(normal);
-			indices.push_back((i*100+j)%(100*100));
-			indices.push_back(((i+1)*100+j)%(100*100));
+			indices.push_back(cap(i*100+j, 100*100));
+			indices.push_back(cap((i+1)*100+j, 100*100));
 
-			indices.push_back(((i+1)*100+j)%(100*100));
-			indices.push_back(((i+1)*100+j+1)%(100*100));
+			indices.push_back(cap((i+1)*100+j, 100*100));
+			indices.push_back(cap((i+1)*100+j+1, 100*100));
 
-			indices.push_back(((i+1)*100+j+1)%(100*100));
-			indices.push_back((i*100+j)%(100*100));
+			indices.push_back(cap((i+1)*100+j+1, 100*100));
+			indices.push_back(cap(i*100+j, 100*100));
 
-			indices.push_back((i*100+j)%(100*100));
-			indices.push_back((i*100+j+1)%(100*100));
+			indices.push_back(cap(i*100+j, 100*100));
+			indices.push_back(cap(i*100+j+1, 100*100));
 
-			indices.push_back((i*100+j+1)%(100*100));
-			indices.push_back(((i+1)*100+j+1)%(100*100));
+			indices.push_back(cap(i*100+j+1, 100*100));
+			indices.push_back(cap((i+1)*100+j+1, 100*100));
+
+			indices.push_back(cap(i*100+j+1, 100*100));
+			indices.push_back(cap((i+1)*100+j, 100*100));
 
 			/*indices.push_back((i*100+j)%(100*100));
 			indices.push_back(((i+1)*100+j)%(100*100));
@@ -803,6 +815,67 @@ dvec3 ilerp(dvec3 p1, dvec3 p2, double t)
 	result.z = result.z * c_axis/big;
 
 	return result;
+}
+
+dvec3 seedSeeking(dvec3 p, double limit, double *dret,
+	double(*implicit)(double x, double y, double z),
+	dvec3(*gradient)(double x, double y, double z))
+{
+	dvec3 dP;
+	double distance = 0;
+	do 
+	{
+		dvec3 grad = gradient(p.x, p.y, p.z);
+		dP = (implicit(p.x,p.y,p.z)*grad);
+		if (dot(grad, grad) > 0)
+			dP = dP / dot(grad, grad);
+		else
+			return p;
+
+		p -= dP;
+		distance += length(dP);
+		*dret = distance;
+
+		cout << length(dP) << endl;
+		cout << dP.x << ", " << dP.y << ", "<< dP.z << endl;
+		cout << p.x << ", " << p.y << ", "<< p.z << endl << endl;
+	} while (length(dP) > 0.0001);
+
+	return p;
+	
+}
+
+dvec3 goal = dvec3(0);
+double surfaceDistance(double x, double y, double z)
+{
+	double value = x*x/(a_axis*a_axis) + y*y/(b_axis*b_axis) + z*z/(c_axis+c_axis) -1.0; 
+
+	value + length(dvec3(x,y,z)-goal)*length(dvec3(x,y,z)-goal);
+
+	return value;
+}
+
+dvec3 surfaceGrad(double x, double y, double z)
+{
+	double dx = 2*x/(a_axis*a_axis) + 2*x;
+	double dy = 2*y/(b_axis*b_axis) + 2*y;
+	double dz = 2*z/(c_axis*c_axis) + 2*z;
+
+	return dvec3(dx,dy,dz);
+}
+
+dvec3 glerp(dvec3 p1, dvec3 p2, double t)
+{
+	cout << endl;
+	goal = p2;
+
+	double distance;
+
+	seedSeeking(p1, 1.f/0.f, &distance, surfaceDistance, surfaceGrad);
+
+	dvec3 ret = seedSeeking(p1, distance*t, &distance, surfaceDistance, surfaceGrad);
+
+	return ret;
 }
 
 vec3 rectangle_to_sphere(vec2 p, float a, float b, float c)

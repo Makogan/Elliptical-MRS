@@ -49,6 +49,7 @@ dvec3 lerp(dvec3 p1, dvec3 p2, double t);
 dvec3 slerp(dvec3 p1, dvec3 p2, double t);
 dvec3 plerp(dvec3 p1, dvec3 p2, double u);
 dvec3 ilerp(dvec3 p1, dvec3 p2, double t);
+dvec3 glerp(dvec3 p1, dvec3 p2, double t);
 
 void elliptical_D_Decomposition(vector<dvec3> fine, vector<double> w, 
 	vector<dvec3> *coarse, vector<dvec4> *details, 
@@ -75,7 +76,7 @@ extern vector<dvec3> holder;
 #define b_axis 1.d
 #define c_axis 1.d
 
-#define INTERP ilerp
+#define INTERP glerp
 
 using namespace std;
 using namespace glm;
