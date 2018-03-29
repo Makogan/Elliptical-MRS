@@ -73,10 +73,10 @@ extern vector<double> weights;
 extern vector<dvec3> holder;
 
 #define a_axis 1.d
-#define b_axis 1.d
-#define c_axis 1.d
+#define b_axis 2.d
+#define c_axis 5.d
 
-#define INTERP glerp
+#define INTERP lerp
 
 using namespace std;
 using namespace glm;

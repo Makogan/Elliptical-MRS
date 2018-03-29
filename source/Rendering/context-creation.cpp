@@ -83,7 +83,6 @@ GLFWwindow* create_context()
 	createGeometry(shapes[1]);//Create a geometry object 
 	createGeometry(shapes[2]);//Create a geometry object 
 	createGeometry(shapes[3]);//Create a geometry object 
-	createTexture(textures[0], "Assets/Textures/Cube-map.png", GL_TEXTURE_2D);
 	
 	//Create a new camera object with defined orientation, position, and dimensions
     int width, height;

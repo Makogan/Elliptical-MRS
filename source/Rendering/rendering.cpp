@@ -16,6 +16,7 @@
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 #include "rendering.hpp"
+#include <random>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb/stb_image.h>
@@ -554,10 +555,10 @@ Graph::Graph(vector<vec3> *vertices, vector<uint> *indices)
 	nodes = (*vertices);
 
 	uint n=indices->size();
-	for(uint i=0; i<n; i++)
+	for(uint i=0; i<n; i+=2)
 	{
-		uint n1 = (*indices)[(i+1)%n];
-		uint n2 = (*indices)[i];
+		uint n1 = (*indices)[(i)];
+		uint n2 = (*indices)[(i+1)%n];
 		bool seen = false;
 		for(uint j=0; j<graph[n2].size(); j++)
 			if(n1 == graph[n2][j] || n1==n2)
@@ -576,10 +577,20 @@ Graph::Graph(vector<vec3> *vertices, vector<uint> *indices)
 
 uint getMin(vector<double> *distances, vector<bool> *visited)
 {
-	uint min = 0;
+	uint min = -1;
+	for(uint i=0; i<distances->size(); i++)
+		if(!(*visited)[i])
+		{
+			min = i;
+			break;
+		}
+
+	if(min == -1)
+		return -1;
+
 	for(uint i=0; i<distances->size(); i++)
 	{
-		if((*distances)[i] < (*distances)[min] && !(*visited)[i])
+		if((*distances)[i] <= (*distances)[min] && !(*visited)[i])
 			min = i;
 	}
 
@@ -611,13 +622,22 @@ void Graph::djikstra(uint start)
 			double edge_length = (double)length(edge);
 
 			double n_length = lengths[current]+edge_length;
-			if(n_length < lengths[neighbour])
+			//cout << "current: " << current << endl;
+			//cout << "Length: " << n_length << " Neighbour: " << lengths[neighbour] <<endl;
+			if(n_length <= lengths[neighbour])
+			{
+				//cout << "check" << endl;
 				lengths[neighbour] = n_length;
-
-			visited[current]=true;
+			}
 		}
+		visited[current]=true;
 		current = getMin(&lengths, &visited);
 		toVisit--;
+		if(current == -1)
+		{
+			toVisit = 0;
+		}
+
 	}
 }
 
@@ -630,7 +650,7 @@ void Graph::toString()
 		{
 			//cout << j << " ";
 			if(graph[i][j] >= 10000)
-				cout << "HOLY SHIT" << i << " " << graph[i][j] << endl;
+				cout << "too big" << i << " " << graph[i][j] << endl;
 			
 			cout << graph[i][j] << ", ";
 
@@ -665,6 +685,7 @@ void ellipse(vector<vec3> &vertices, vector<uint> &indices, vector<vec3> &normal
 			float u=(j/99.f)*2*M_PI;
 			vec3 normal = vec3(a*cos(u)*sin(v), b*sin(u)*sin(v), c*cos(v));
 			vertices.push_back(normal);
+
 			indices.push_back(cap(i*100+j, 100*100));
 			indices.push_back(cap((i+1)*100+j, 100*100));
 
@@ -866,7 +887,8 @@ dvec3 surfaceGrad(double x, double y, double z)
 
 dvec3 glerp(dvec3 p1, dvec3 p2, double t)
 {
-	cout << endl;
+	if(t<0 || t>1)
+		cout << "Here: " << t <<endl;
 	goal = p2;
 
 	double distance;
@@ -1126,7 +1148,7 @@ double calculateAverageLength(vector<vec3> vertices, Graph g)
 		values.push_back(v);
 
 		if(i%10==0)
-			cout << "Evaluating distance average:" << (float)i/(float)n << "\%" <<endl;
+			cout << "Evaluating distance average:" << ((float)i/(float)n)*100 << "\%" <<endl;
 	}
 
 	sort(values.begin(), values.end());
@@ -1153,33 +1175,125 @@ double calculateAverageLength(vector<vec3> vertices, Graph g)
 	return sum;
 }
 
-vector<vec3> test = {vec3(0,0,0),vec3(4,0,0),vec3(4,4,0),vec3(0,4,0), vec3(4,8,0)};
-vector<uint> edges {0,1, 1,2, 2,3, 3,0, 0,2, 1,3, 2,4};
+vector<vec3> uniform_points(uint size)
+{
+	vector<vec3> return_val;
+	std::default_random_engine generator (glfwGetTime());
+	std::normal_distribution<double> distributionx(0.0,a_axis);
+	std::normal_distribution<double> distributiony(0.0,b_axis);
+	std::normal_distribution<double> distributionz(0.0,c_axis);
+
+	for(uint i=0; i<size; i++)
+	{
+		float x,y,z;
+		x = distributionx(generator);
+		y = distributiony(generator);
+		z = distributionz(generator);
+
+		return_val.push_back(vec3(x,y,z));
+	}
+
+	for(uint i=0; i<size; i++)
+	{
+		return_val[i] = ellipse_project(return_val[i], a_axis, b_axis, c_axis);
+	}
+
+	return return_val;
+}
+
+vector<vector<double>> connect_all(vector<vec3> o_set)
+{
+	vector<vector<double>> ret = vector<vector<double>>(o_set.size());
+	for(uint i=0; i<o_set.size(); i++)
+	{
+		ret[i] = vector<double>(o_set.size());
+		for(uint j=0; j<o_set.size(); j++)
+		{
+			vector<vec3> temp;
+			for(uint k=0; k<10; k++)
+			{
+				temp.push_back(INTERP(o_set[i], o_set[j], k/10.f));
+			}
+
+			double distance = 0;
+			for(uint k=1; k<10; k++)
+			{
+				distance += length(temp[k]-temp[k-1]);
+			}
+
+			ret[i][j] = distance;
+		}
+	}
+
+	return ret;
+}
+
+vector<vec3> merge(vector<vector<vec3>> set)
+{
+	vector<vec3> ret;
+	for(uint i=0; i<set.size(); i++)
+	{
+		for(uint j=0; j<set[i].size(); j++)
+		{
+			ret.push_back(set[i][j]);
+		}
+	}
+
+	return ret;
+}
 
 Graph g;
+void evaluate(vector<vec3> data)
+{
+	vector<double> distancesD = vector<double>(data.size()*data.size());
+
+	//g.toString();
+	for(uint i=0; i<data.size(); i++)
+	{
+		uint n1 = getIndex(&g.nodes, data[i]);
+		g.djikstra(n1);
+		cout << "Evaluation: " << (float)i/(float)data.size() * 100 << "\%" << endl;
+		for(uint j=0; j<data.size(); j++)
+		{
+			uint n2 = getIndex(&g.nodes, data[j]);
+			distancesD[i*data.size()+j] = g.node_length(n2);
+			//cout << distancesD[i*data.size()+j] << endl;
+		}	
+
+		//cout << endl;
+	}
+
+	vector<vector<double>> line_sets = connect_all(data);	
+
+	for(uint i=0; i<data.size(); i++)
+	{
+		for(uint j=0; j<line_sets[i].size(); j++)
+		{
+			cout << "Geodesic: " << distancesD[i*data.size()+j] << endl;
+			cout << "Euclidean: " << line_sets[i][j] << endl;
+		}
+	}
+}
+
+
 void render_loop(GLFWwindow* window)
 {
 	ellipse(shapes[0].vertices, shapes[0].indices, shapes[0].normals, a_axis,b_axis,c_axis);
 
 	g = Graph(&(shapes[0].vertices), &(shapes[0].indices));
-	//Graph g = Graph(&test, &edges);
-	/*g.djikstra(6681);
-	cout << g.node_length(9874) << endl;*/
-	//g.toString();
 
-	//float temp = acos(dot(g.nodes[6681],g.nodes[9854]));
-	//cout << temp << endl;
-
-	shapes[1].vertices.push_back(rectangle_to_sphere(vec2(0.5, 1), a_axis,b_axis,c_axis));
+	/*shapes[1].vertices.push_back(rectangle_to_sphere(vec2(0.5, 1), a_axis,b_axis,c_axis));
 	shapes[1].vertices.push_back(rectangle_to_sphere(vec2(0.1, 1), a_axis,b_axis,c_axis));
 	shapes[1].vertices.push_back(rectangle_to_sphere(vec2(0.1, 1.5), a_axis,b_axis,c_axis));
-	shapes[1].vertices.push_back(rectangle_to_sphere(vec2(0.5, 1.5), a_axis,b_axis,c_axis));
+	shapes[1].vertices.push_back(rectangle_to_sphere(vec2(0.5, 1.5), a_axis,b_axis,c_axis));*/
 
-	//cout << calculateAverageLength(shapes[1].vertices, g) << endl;
+	vector<vec3> data = (uniform_points(10));
+	shapes[1].vertices = (data);
 
-	//project_line(shapes[1].vertices, vec2(0,0), vec2(M_PI,M_PI),1.01f,1.01f,1.01f);
+	evaluate(data);
+	//shapes[1].vertices = uniform_points(1000);
 
-	//shapes[1].vertices = fine_points;
+	//evaluate(data_lines);
 
 	loadGeometryArrays(programs[0], shapes[0]);
 	loadGeometryArrays(programs[0], shapes[1]);
@@ -1203,7 +1317,7 @@ void render_loop(GLFWwindow* window)
 
 		loadColor(vec4(0,0.5,0.9,1), programs[0]);
 		//loadTexture(programs[0], textures[0]);
-		render(programs[0], shapes[0], GL_LINE_STRIP);
+		render(programs[0], shapes[0], GL_LINES);
 
 		//glDisable(GL_DEPTH_TEST);
 		/*vector<vec3> temp = shapes[1].vertices;
