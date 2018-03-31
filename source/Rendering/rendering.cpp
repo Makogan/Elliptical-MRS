@@ -38,6 +38,7 @@ vector<Shader> shaders;//Global Shaders list
 vector<Geometry> shapes(10);//Global Shapes list Temporary!
 vector<Texture> textures(2); //Temporary
 
+dvec3 (*INTERP)(dvec3, dvec3, double) = splerp;
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 //========================================================================================
@@ -773,7 +774,7 @@ dvec3 sphere_project(dvec3 p, float r)
 	return t*p;
 }
 
-dvec3 lerp(dvec3 p1, dvec3 p2, double t)
+dvec3 mlerp(dvec3 p1, dvec3 p2, double t)
 {
 	return (1-t)*p1+t*p2;
 }
@@ -790,7 +791,7 @@ dvec3 plerp(dvec3 p1, dvec3 p2, double u)
 
 	dvec3 projected = t*p2;
 
-	dvec3 new_p = lerp(p1,p2, u);
+	dvec3 new_p = mlerp(p1,p2, u);
 
 	return ellipse_project(new_p, a_axis, b_axis, c_axis);
 }
@@ -814,6 +815,21 @@ dvec3 slerp(dvec3 p1, dvec3 p2, double t)
 	}
 
 	return c1*p1+c2*p2;
+}
+
+dvec3 splerp(dvec3 p1, dvec3 p2, double t)
+{
+	double r = glm::max(a_axis, b_axis);
+	r = glm::max(r, c_axis);
+
+	p1 = sphere_project(p1, r);
+	p2 = sphere_project(p2, r);
+
+	dvec3 pi = slerp(p1,p2,t);
+
+	pi = ellipse_project(pi, a_axis, b_axis, c_axis);
+
+	return pi;
 }
 
 dvec3 ilerp(dvec3 p1, dvec3 p2, double t)
@@ -935,6 +951,11 @@ vector<dvec3> subdivision(vector<dvec3> points, dvec3(*interp)(dvec3,dvec3,doubl
 			new_shape[i]=interp(new_shape[i], interp(new_shape[(i-1+n)%n], new_shape[(i+1)%n], 0.5), 0.5);
 		}
 	}*/
+
+	for(uint i=0; i<new_shape.size(); i++)
+	{
+		new_shape[i] = ellipse_project(new_shape[i], a_axis, b_axis, c_axis);
+	}
 
 	return new_shape;
 }
@@ -1201,6 +1222,7 @@ vector<vec3> uniform_points(uint size)
 	return return_val;
 }
 
+int subdivisions = 10;
 vector<vector<double>> connect_all(vector<vec3> o_set)
 {
 	vector<vector<double>> ret = vector<vector<double>>(o_set.size());
@@ -1210,13 +1232,13 @@ vector<vector<double>> connect_all(vector<vec3> o_set)
 		for(uint j=0; j<o_set.size(); j++)
 		{
 			vector<vec3> temp;
-			for(uint k=0; k<10; k++)
+			for(uint k=0; k<subdivisions; k++)
 			{
-				temp.push_back(INTERP(o_set[i], o_set[j], k/10.f));
+				temp.push_back(INTERP(o_set[i], o_set[j], (float)k/(float)subdivisions));
 			}
 
 			double distance = 0;
-			for(uint k=1; k<10; k++)
+			for(uint k=1; k<subdivisions; k++)
 			{
 				distance += length(temp[k]-temp[k-1]);
 			}
@@ -1228,12 +1250,12 @@ vector<vector<double>> connect_all(vector<vec3> o_set)
 	return ret;
 }
 
-vector<vec3> merge(vector<vector<vec3>> set)
+vector<double> merge(vector<vector<double>> set)
 {
-	vector<vec3> ret;
+	vector<double> ret;
 	for(uint i=0; i<set.size(); i++)
 	{
-		for(uint j=0; j<set[i].size(); j++)
+		for(uint j=i; j<set[i].size(); j++)
 		{
 			ret.push_back(set[i][j]);
 		}
@@ -1243,6 +1265,8 @@ vector<vec3> merge(vector<vector<vec3>> set)
 }
 
 Graph g;
+std::ofstream outfile ("tests.csv");
+
 void evaluate(vector<vec3> data)
 {
 	vector<double> distancesD = vector<double>(data.size()*data.size());
@@ -1263,19 +1287,99 @@ void evaluate(vector<vec3> data)
 		//cout << endl;
 	}
 
-	vector<vector<double>> line_sets = connect_all(data);	
-
+	/*outfile << "Geodesic" << endl;
+	outfile <<", ";
+	for(uint i=0; i<data.size(); i++)
+		outfile << i <<", ";
 	for(uint i=0; i<data.size(); i++)
 	{
+		outfile << endl << i << ", ";
+		for(uint j=0; j<data.size(); j++)
+		{
+			outfile << distancesD[i*data.size()+j] <<", ";
+			//cout << "Euclidean: " << line_sets[i][j] << endl;
+		}
+	}*/
+
+	/*outfile << endl << "Interp" << endl;
+	outfile <<", ";
+	for(uint i=0; i<data.size(); i++)
+		outfile << i <<", ";
+	for(uint i=0; i<data.size(); i++)
+	{
+		outfile << endl << i << ", ";
 		for(uint j=0; j<line_sets[i].size(); j++)
 		{
-			cout << "Geodesic: " << distancesD[i*data.size()+j] << endl;
-			cout << "Euclidean: " << line_sets[i][j] << endl;
+			//outfile << distancesD[i*data.size()+j] <<", ";
+			outfile << line_sets[i][j] << ", ";
 		}
+	}*/
+
+	int connections=0;
+	double distance = 0;
+	for(uint i=0; i<data.size(); i++)
+	{
+		vector<vector<double>> line_sets = connect_all(data);
+		for(uint j=i+1; j<data.size(); j++)
+		{
+			//cout << distancesD[i*data.size() + j] << endl;
+			connections++;
+			distance+=distancesD[i*data.size() + j];
+		}
+	}
+
+	double average = distance/connections;
+	outfile <<endl << "Geodesic Average" << endl;
+	outfile << average << endl;
+
+	outfile <<endl << "Interpolation Averages" << endl;
+	outfile << "Subdivisions, "<< "Averages, " << endl;
+
+	for(uint k=1; k<=100; k++)
+	{
+		connections=0;
+		distance = 0;
+		subdivisions = k*10;
+		outfile << subdivisions <<", ";
+		cout << "Subdivision test: " << subdivisions << endl;
+		vector<vector<double>> line_sets = connect_all(data);	
+		for(uint i=0; i<data.size(); i++)
+		{
+			for(uint j=i+1; j<data.size(); j++)
+			{
+				//cout << distancesD[i*data.size() + j] << endl;
+				connections++;
+				distance+=line_sets[i][j];
+			}
+		}
+		average = distance/connections;
+		outfile << average << endl;
 	}
 }
 
+string inline erpToString(dvec3 (*f)(dvec3, dvec3, double))
+{
+	if (f==mlerp)
+	{
+		return "Lerp";
+	}
 
+	if (f==plerp)
+	{
+		return "Plane Lerp";
+	}
+
+	if (f==splerp)
+	{
+		return "Spherical projection Lerp";
+	}
+
+	if (f==ilerp)
+	{
+		return "Implicit function Lerp";
+	}
+}
+vector<dvec3 (*)(dvec3, dvec3, double)> methods = {mlerp, plerp, splerp, ilerp};
 void render_loop(GLFWwindow* window)
 {
 	ellipse(shapes[0].vertices, shapes[0].indices, shapes[0].normals, a_axis,b_axis,c_axis);
@@ -1290,7 +1394,12 @@ void render_loop(GLFWwindow* window)
 	vector<vec3> data = (uniform_points(10));
 	shapes[1].vertices = (data);
 
-	evaluate(data);
+	for(uint i=0; i<4; i++)
+	{
+		INTERP = methods[i];
+		outfile << endl<< erpToString(methods[i]) << endl;
+		evaluate(data);
+	}
 	//shapes[1].vertices = uniform_points(1000);
 
 	//evaluate(data_lines);

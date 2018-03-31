@@ -45,8 +45,9 @@ using namespace std;
 
 vector<dvec3> subdivision(vector<dvec3> verts, dvec3(*interp)(dvec3,dvec3,double));
 
-dvec3 lerp(dvec3 p1, dvec3 p2, double t);
+dvec3 mlerp(dvec3 p1, dvec3 p2, double t);
 dvec3 slerp(dvec3 p1, dvec3 p2, double t);
+dvec3 splerp(dvec3 p1, dvec3 p2, double t);
 dvec3 plerp(dvec3 p1, dvec3 p2, double u);
 dvec3 ilerp(dvec3 p1, dvec3 p2, double t);
 dvec3 glerp(dvec3 p1, dvec3 p2, double t);
@@ -76,7 +77,7 @@ extern vector<dvec3> holder;
 #define b_axis 2.d
 #define c_axis 5.d
 
-#define INTERP lerp
+extern dvec3 (*INTERP)(dvec3, dvec3, double);
 
 using namespace std;
 using namespace glm;
