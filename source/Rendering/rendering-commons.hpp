@@ -73,9 +73,9 @@ dvec3 sphere_project(dvec3 p, float r);
 extern vector<double> weights;
 extern vector<dvec3> holder;
 
-#define a_axis 1.d
-#define b_axis 2.d
-#define c_axis 5.d
+#define a_axis 0.8
+#define b_axis 1.d
+#define c_axis 2.d
 
 extern dvec3 (*INTERP)(dvec3, dvec3, double);
 

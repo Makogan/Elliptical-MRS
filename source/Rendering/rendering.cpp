@@ -676,34 +676,35 @@ uint inline cap(uint num, uint cap)
 	return num;
 }
 
+int resolution = 100;
 void ellipse(vector<vec3> &vertices, vector<uint> &indices, vector<vec3> &normals, float a, float b, float c)
 {
-	for(uint i=0; i<100; i++)
+	for(uint i=0; i<resolution; i++)
 	{
-		float v=(i/99.f)*M_PI;
-		for(uint j=0; j<100; j++)
+		float v=(i/((float)resolution-1))*M_PI;
+		for(uint j=0; j<resolution; j++)
 		{
-			float u=(j/99.f)*2*M_PI;
+			float u=(j/((float)resolution-1))*2*M_PI;
 			vec3 normal = vec3(a*cos(u)*sin(v), b*sin(u)*sin(v), c*cos(v));
 			vertices.push_back(normal);
 
-			indices.push_back(cap(i*100+j, 100*100));
-			indices.push_back(cap((i+1)*100+j, 100*100));
+			indices.push_back(cap(i*resolution+j, pow(resolution, 2)));
+			indices.push_back(cap((i+1)*resolution+j, pow(resolution, 2)));
 
-			indices.push_back(cap((i+1)*100+j, 100*100));
-			indices.push_back(cap((i+1)*100+j+1, 100*100));
+			indices.push_back(cap((i+1)*resolution+j, pow(resolution, 2)));
+			indices.push_back(cap((i+1)*resolution+j+1, pow(resolution, 2)));
 
-			indices.push_back(cap((i+1)*100+j+1, 100*100));
-			indices.push_back(cap(i*100+j, 100*100));
+			indices.push_back(cap((i+1)*resolution+j+1, pow(resolution, 2)));
+			indices.push_back(cap(i*resolution+j, pow(resolution, 2)));
 
-			indices.push_back(cap(i*100+j, 100*100));
-			indices.push_back(cap(i*100+j+1, 100*100));
+			indices.push_back(cap(i*resolution+j, pow(resolution, 2)));
+			indices.push_back(cap(i*resolution+j+1, pow(resolution, 2)));
 
-			indices.push_back(cap(i*100+j+1, 100*100));
-			indices.push_back(cap((i+1)*100+j+1, 100*100));
+			indices.push_back(cap(i*resolution+j+1, pow(resolution, 2)));
+			indices.push_back(cap((i+1)*resolution+j+1, pow(resolution, 2)));
 
-			indices.push_back(cap(i*100+j+1, 100*100));
-			indices.push_back(cap((i+1)*100+j, 100*100));
+			indices.push_back(cap(i*resolution+j+1, pow(resolution, 2)));
+			indices.push_back(cap((i+1)*resolution+j, pow(resolution, 2)));
 
 			/*indices.push_back((i*100+j)%(100*100));
 			indices.push_back(((i+1)*100+j)%(100*100));
@@ -737,14 +738,6 @@ void project_line(vector<vec3> &vertices, vec2 p1, vec2 p2, float a, float b, fl
 		vertices.push_back(vec3(a*cos(theta)*sin(r), b*sin(theta)*sin(r), c*cos(r)));
 
 		t+=step;
-
-		/*vec2 p_point = mix(p1,p2,t);
-		float u = p_point[0];
-		float v = p_point[1];
-		float correction = abs(sin(v))<=0.001? 0 : 1.f/sin(v);
-		u=u*correction;
-		vertices.push_back(vec3(a*cos(u)*sin(v), b*sin(u)*sin(v), c*cos(v)));
-		t+=step;*/
 	}
 }
 
@@ -943,14 +936,6 @@ vector<dvec3> subdivision(vector<dvec3> points, dvec3(*interp)(dvec3,dvec3,doubl
 			new_shape[i]=interp(new_shape[i], interp(new_shape[(i-1+n)%n], new_shape[(i+1)%n], 0.5), 0.5);
 		}
 	}
-
-	/*else
-	{
-		for(uint i=1; i<n; i+=2)
-		{
-			new_shape[i]=interp(new_shape[i], interp(new_shape[(i-1+n)%n], new_shape[(i+1)%n], 0.5), 0.5);
-		}
-	}*/
 
 	for(uint i=0; i<new_shape.size(); i++)
 	{
@@ -1232,7 +1217,7 @@ vector<vector<double>> connect_all(vector<vec3> o_set)
 		for(uint j=0; j<o_set.size(); j++)
 		{
 			vector<vec3> temp;
-			for(uint k=0; k<subdivisions; k++)
+			for(uint k=0; k<=subdivisions; k++)
 			{
 				temp.push_back(INTERP(o_set[i], o_set[j], (float)k/(float)subdivisions));
 			}
@@ -1267,8 +1252,67 @@ vector<double> merge(vector<vector<double>> set)
 Graph g;
 std::ofstream outfile ("tests.csv");
 
+string inline erpToString(dvec3 (*f)(dvec3, dvec3, double))
+{
+	if (f==mlerp)
+	{
+		return "Lerp";
+	}
+
+	if (f==plerp)
+	{
+		return "Plane Projection";
+	}
+
+	if (f==splerp)
+	{
+		return "Spherical Projection";
+	}
+
+	if (f==ilerp)
+	{
+		return "Implicit Projection";
+	}
+}
+
+void stats(vector<double> data, double &average, double &median, double &std)
+{
+	sort(data.begin(), data.end());
+
+	if(data.size()%2 ==0)
+	{
+		median = (data[data.size()/2]+data[(data.size()/2) +1])/2.d;
+	}
+
+	else
+		median = (data[(data.size()/2) +1]);
+
+	average = 0;
+	for(int i=0; i<data.size(); i++)
+		 average+=data[i];
+	
+	average = average/(double)data.size();
+
+	std = 0;
+	for(int i=0; i<data.size(); i++)
+	{
+		std += pow(average-data[i], 2);
+	}
+	std = sqrt(std/data.size());
+}
+
+vector<double> specialMeasure(vector<double> original, vector<double> current)
+{
+	vector<double> ret;
+	for(int i=0; i<original.size(); i++)
+		ret.push_back(current[i]/original[i]);
+
+	return ret;
+}
+
 void evaluate(vector<vec3> data)
 {
+	cout << "Evaluating" << endl;
 	vector<double> distancesD = vector<double>(data.size()*data.size());
 
 	//g.toString();
@@ -1287,36 +1331,9 @@ void evaluate(vector<vec3> data)
 		//cout << endl;
 	}
 
-	/*outfile << "Geodesic" << endl;
-	outfile <<", ";
-	for(uint i=0; i<data.size(); i++)
-		outfile << i <<", ";
-	for(uint i=0; i<data.size(); i++)
-	{
-		outfile << endl << i << ", ";
-		for(uint j=0; j<data.size(); j++)
-		{
-			outfile << distancesD[i*data.size()+j] <<", ";
-			//cout << "Euclidean: " << line_sets[i][j] << endl;
-		}
-	}*/
-
-	/*outfile << endl << "Interp" << endl;
-	outfile <<", ";
-	for(uint i=0; i<data.size(); i++)
-		outfile << i <<", ";
-	for(uint i=0; i<data.size(); i++)
-	{
-		outfile << endl << i << ", ";
-		for(uint j=0; j<line_sets[i].size(); j++)
-		{
-			//outfile << distancesD[i*data.size()+j] <<", ";
-			outfile << line_sets[i][j] << ", ";
-		}
-	}*/
-
 	int connections=0;
 	double distance = 0;
+	vector<double> gDistances;
 	for(uint i=0; i<data.size(); i++)
 	{
 		vector<vector<double>> line_sets = connect_all(data);
@@ -1325,6 +1342,7 @@ void evaluate(vector<vec3> data)
 			//cout << distancesD[i*data.size() + j] << endl;
 			connections++;
 			distance+=distancesD[i*data.size() + j];
+			gDistances.push_back(distancesD[i*data.size() + j]);
 		}
 	}
 
@@ -1332,8 +1350,10 @@ void evaluate(vector<vec3> data)
 	outfile <<endl << "Geodesic Average" << endl;
 	outfile << average << endl;
 
+	double gAverage = average;
 	outfile <<endl << "Interpolation Averages" << endl;
-	outfile << "Subdivisions, "<< "Averages, " << endl;
+	outfile << "Subdivisions, "<< erpToString(INTERP)+"," << "Geodesic," 
+		<< "Average Score," << "Median Score," << "Standard deviation of score," << endl;
 
 	for(uint k=1; k<=100; k++)
 	{
@@ -1343,42 +1363,29 @@ void evaluate(vector<vec3> data)
 		outfile << subdivisions <<", ";
 		cout << "Subdivision test: " << subdivisions << endl;
 		vector<vector<double>> line_sets = connect_all(data);	
+
+		double average, median, std;
+		vector<double> holder;
 		for(uint i=0; i<data.size(); i++)
 		{
 			for(uint j=i+1; j<data.size(); j++)
 			{
 				//cout << distancesD[i*data.size() + j] << endl;
-				connections++;
-				distance+=line_sets[i][j];
+				//connections++;
+				//distance+=line_sets[i][j];
+				holder.push_back(line_sets[i][j]);
 			}
 		}
-		average = distance/connections;
-		outfile << average << endl;
+		//average = distance/connections;
+		stats(holder, average, median, std);
+		vector<double> scores = specialMeasure(gDistances, holder);
+		double aScore, mScore, sScore;
+		stats(scores, aScore, mScore, sScore);
+		outfile << average << ", " << gAverage <<", "<< 
+			aScore << ", "<< mScore << ", " << sScore<<endl;
 	}
 }
 
-string inline erpToString(dvec3 (*f)(dvec3, dvec3, double))
-{
-	if (f==mlerp)
-	{
-		return "Lerp";
-	}
-
-	if (f==plerp)
-	{
-		return "Plane Lerp";
-	}
-
-	if (f==splerp)
-	{
-		return "Spherical projection Lerp";
-	}
-
-	if (f==ilerp)
-	{
-		return "Implicit function Lerp";
-	}
-}
 vector<dvec3 (*)(dvec3, dvec3, double)> methods = {mlerp, plerp, splerp, ilerp};
 void render_loop(GLFWwindow* window)
 {
