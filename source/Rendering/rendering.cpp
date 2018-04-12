@@ -1208,13 +1208,12 @@ vector<vec3> uniform_points(uint size)
 }
 
 int subdivisions = 10;
-vector<vector<double>> connect_all(vector<vec3> o_set)
+vector<double> connect_all(vector<vec3> o_set)
 {
-	vector<vector<double>> ret = vector<vector<double>>(o_set.size());
+	vector<double> ret = vector<double>(o_set.size());
 	for(uint i=0; i<o_set.size(); i++)
 	{
-		ret[i] = vector<double>(o_set.size());
-		for(uint j=0; j<o_set.size(); j++)
+		for(uint j=i+1; j<o_set.size(); j++)
 		{
 			vector<vec3> temp;
 			for(uint k=0; k<=subdivisions; k++)
@@ -1228,7 +1227,7 @@ vector<vector<double>> connect_all(vector<vec3> o_set)
 				distance += length(temp[k]-temp[k-1]);
 			}
 
-			ret[i][j] = distance;
+			ret.push_back(distance);
 		}
 	}
 
@@ -1256,22 +1255,22 @@ string inline erpToString(dvec3 (*f)(dvec3, dvec3, double))
 {
 	if (f==mlerp)
 	{
-		return "Lerp";
+		return "Lerp average";
 	}
 
 	if (f==plerp)
 	{
-		return "Plane Projection";
+		return "Plane Projection average";
 	}
 
 	if (f==splerp)
 	{
-		return "Spherical Projection";
+		return "Spherical Projection average";
 	}
 
 	if (f==ilerp)
 	{
-		return "Implicit Projection";
+		return "Implicit Projection average";
 	}
 }
 
@@ -1310,80 +1309,38 @@ vector<double> specialMeasure(vector<double> original, vector<double> current)
 	return ret;
 }
 
-void evaluate(vector<vec3> data)
+vector<double> calcGeodesics(vector<vec3> data)
 {
-	cout << "Evaluating" << endl;
-	vector<double> distancesD = vector<double>(data.size()*data.size());
-
-	//g.toString();
+	vector<double> distancesD;
+	cout << "Calcualting geodesics" << endl;
 	for(uint i=0; i<data.size(); i++)
 	{
 		uint n1 = getIndex(&g.nodes, data[i]);
 		g.djikstra(n1);
 		cout << "Evaluation: " << (float)i/(float)data.size() * 100 << "\%" << endl;
-		for(uint j=0; j<data.size(); j++)
-		{
-			uint n2 = getIndex(&g.nodes, data[j]);
-			distancesD[i*data.size()+j] = g.node_length(n2);
-			//cout << distancesD[i*data.size()+j] << endl;
-		}	
-
-		//cout << endl;
-	}
-
-	int connections=0;
-	double distance = 0;
-	vector<double> gDistances;
-	for(uint i=0; i<data.size(); i++)
-	{
-		vector<vector<double>> line_sets = connect_all(data);
 		for(uint j=i+1; j<data.size(); j++)
 		{
-			//cout << distancesD[i*data.size() + j] << endl;
-			connections++;
-			distance+=distancesD[i*data.size() + j];
-			gDistances.push_back(distancesD[i*data.size() + j]);
-		}
+			uint n2 = getIndex(&g.nodes, data[j]);
+			distancesD.push_back(g.node_length(n2));
+		}	
 	}
 
-	double average = distance/connections;
-	outfile <<endl << "Geodesic Average" << endl;
-	outfile << average << endl;
+	return distancesD;
+}
 
-	double gAverage = average;
-	outfile <<endl << "Interpolation Averages" << endl;
-	outfile << "Subdivisions, "<< erpToString(INTERP)+"," << "Geodesic," 
-		<< "Average Score," << "Median Score," << "Standard deviation of score," << endl;
-
-	for(uint k=1; k<=100; k++)
+vector<double> evaluate(vector<vec3> data)
+{
+	vector<double> ret;
+	for(uint i=0; i<100; i++)
 	{
-		connections=0;
-		distance = 0;
-		subdivisions = k*10;
-		outfile << subdivisions <<", ";
-		cout << "Subdivision test: " << subdivisions << endl;
-		vector<vector<double>> line_sets = connect_all(data);	
-
+		subdivisions = (i+1)*10;
 		double average, median, std;
-		vector<double> holder;
-		for(uint i=0; i<data.size(); i++)
-		{
-			for(uint j=i+1; j<data.size(); j++)
-			{
-				//cout << distancesD[i*data.size() + j] << endl;
-				//connections++;
-				//distance+=line_sets[i][j];
-				holder.push_back(line_sets[i][j]);
-			}
-		}
-		//average = distance/connections;
-		stats(holder, average, median, std);
-		vector<double> scores = specialMeasure(gDistances, holder);
-		double aScore, mScore, sScore;
-		stats(scores, aScore, mScore, sScore);
-		outfile << average << ", " << gAverage <<", "<< 
-			aScore << ", "<< mScore << ", " << sScore<<endl;
+		vector<double> temp = connect_all(data);
+		stats(temp, average, median, std);
+		ret.push_back(average);
 	}
+
+	return ret;
 }
 
 vector<dvec3 (*)(dvec3, dvec3, double)> methods = {mlerp, plerp, splerp, ilerp};
@@ -1401,11 +1358,25 @@ void render_loop(GLFWwindow* window)
 	vector<vec3> data = (uniform_points(10));
 	shapes[1].vertices = (data);
 
+	INTERP = mlerp;
+	vector<double> geodesics = calcGeodesics(data);
+	double average, median, std;
+	stats(geodesics, average, median, std);
+
+	vector<vector<double>> tests = vector<vector<double>>(4);
 	for(uint i=0; i<4; i++)
 	{
 		INTERP = methods[i];
-		outfile << endl<< erpToString(methods[i]) << endl;
-		evaluate(data);
+		tests[i] = evaluate(data);
+	}
+
+	outfile << "Subdivisions, " << "Geodesic average," << erpToString(methods[0]) << ", " << erpToString(methods[1]) <<", "  
+		<< erpToString(methods[2]) << ", "<< erpToString(methods[3]) <<endl;
+	for(int i=0;  i<100; i++)
+	{
+		outfile << to_string(i*10)<< ", " << average << ", " << tests[0][i] << ", "<< tests[1][i]<< ", " << tests[2][i] << ", "
+			<< tests[3][i] << endl;
+
 	}
 	//shapes[1].vertices = uniform_points(1000);
 

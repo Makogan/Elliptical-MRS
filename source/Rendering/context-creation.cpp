@@ -336,13 +336,13 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 		{
 			float radius = std::max(a_axis, b_axis);
 			radius = std::max((double)radius, c_axis);
-			//holder[i] = sphere_project(holder[i], radius);
+			holder[i] = sphere_project(holder[i], radius);
 		}
 		holder = subdivision(holder, slerp);
-		/*for(uint i=0; i<holder.size(); i++)
+		for(uint i=0; i<holder.size(); i++)
 		{
 			holder[i] = ellipse_project(holder[i], a_axis, b_axis, c_axis);
-		}*/
+		}
 		dtof(holder, shapes[1].vertices);
 		loadGeometryArrays(programs[0], shapes[1]);
 	}
@@ -356,7 +356,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 			{
 				float radius = std::max(a_axis, b_axis);
 				radius = std::max((double)radius, c_axis);
-				//holder[i] = sphere_project(holder[i], radius);
+				holder[i] = sphere_project(holder[i], radius);
 			}
 			if(scheme == 'D')
 				elliptical_D_reconstruction(&temp, weights, 
@@ -368,10 +368,10 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 					INTERP);
 
 			holder = temp;
-			/*for(uint i=0; i<holder.size(); i++)
+			for(uint i=0; i<holder.size(); i++)
 			{
 				holder[i] = ellipse_project(holder[i], a_axis, b_axis, c_axis);
-			}*/
+			}
 			dtof(holder, shapes[1].vertices);
 			loadGeometryArrays(programs[0], shapes[1]);
 		}
